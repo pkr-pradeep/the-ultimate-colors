@@ -218,55 +218,59 @@ export const GameBoard: React.FC = () => {
   /**
    * Human Player submits bid
    */
-  const handleHumanSelectBid = (bid: number) => {
+  const handleHumanSelectBid = useCallback((bid: number) => {
     sounds.playClick();
     setGameState(prev => submitPlayerBid(prev, 'south', bid));
-  };
+  }, []);
 
   /**
    * Human Player plays card
    */
-  const handleHumanPlayCard = (card: Card) => {
-    if (gameState.phase !== 'playing' || gameState.turn !== 'south') return;
+  const handleHumanPlayCard = useCallback((card: Card) => {
+    setGameState(prev => {
+      if (prev.phase !== 'playing' || prev.turn !== 'south') return prev;
 
-    if (card.isDadajiJoker) {
-      sounds.playDadajiFanfare();
-    } else {
-      sounds.playCardSnap();
-    }
+      if (card.isDadajiJoker) {
+        sounds.playDadajiFanfare();
+      } else {
+        sounds.playCardSnap();
+      }
 
-    setGameState(prev => executeCardPlay(prev, 'south', card));
-  };
+      return executeCardPlay(prev, 'south', card);
+    });
+  }, []);
 
   /**
    * Advance to next hand
    */
-  const handleNextHand = () => {
+  const handleNextHand = useCallback(() => {
     setIsScoreboardOpen(false);
     sounds.playShuffleSound();
     setGameState(prev => advanceToNextHand(prev));
-  };
+  }, []);
 
   /**
    * Restart entire match
    */
-  const handleRestartMatch = () => {
+  const handleRestartMatch = useCallback(() => {
     setIsScoreboardOpen(false);
     sounds.playShuffleSound();
-    const fresh = initializeMatch(gameState.matchConfig);
-    setGameState(startHand(fresh));
-  };
+    setGameState(prev => {
+      const fresh = initializeMatch(prev.matchConfig);
+      return startHand(fresh);
+    });
+  }, []);
 
   /**
    * Redeal current hand
    */
-  const handleRedealHand = () => {
+  const handleRedealHand = useCallback(() => {
     sounds.playShuffleSound();
     setGameState(prev => {
       const reset = { ...prev, matchWinner: null, phase: 'idle' as const };
       return startHand(reset);
     });
-  };
+  }, []);
 
   /**
    * Apply new Match Configuration (Point target or Time Mode)
@@ -430,7 +434,7 @@ export const GameBoard: React.FC = () => {
 
       {/* ================= BOTTOM FAN HAND & AADESH SEAT (HUMAN PLAYER) ================= */}
       {/* Wide horizontal natural fan with Aadesh calligraphic nameplate centered directly beneath */}
-      <footer className="w-full relative z-20 pb-0.5 sm:pb-1 flex flex-col items-center flex-shrink-0">
+      <footer className="w-full max-w-full relative z-20 pb-0.5 sm:pb-1 flex flex-col items-center flex-shrink-0 overflow-x-clip">
         <PlayerHandFan
           cards={humanPlayer.hand}
           legalCards={

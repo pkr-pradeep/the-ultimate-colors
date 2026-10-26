@@ -27,7 +27,7 @@ interface TableControlsProps {
   onInspectTrump: () => void;
 }
 
-export const TableControls: React.FC<TableControlsProps> = ({
+export const TableControls = React.memo<TableControlsProps>(({
   handNumber,
   trickNumber,
   trumpSuit,
@@ -378,4 +378,6 @@ export const TableControls: React.FC<TableControlsProps> = ({
       </div>
     </header>
   );
-};
+});
+
+TableControls.displayName = 'TableControls';

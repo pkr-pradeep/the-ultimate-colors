@@ -22,7 +22,7 @@ interface TableBiddingCenterProps {
   onSelectBid: (bid: number) => void;
 }
 
-export const TableBiddingCenter: React.FC<TableBiddingCenterProps> = ({
+export const TableBiddingCenter = React.memo<TableBiddingCenterProps>(({
   trumpSuit,
   trumpCard,
   isJokerRevealHand,
@@ -303,4 +303,6 @@ export const TableBiddingCenter: React.FC<TableBiddingCenterProps> = ({
       </div>
     </div>
   );
-};
+});
+
+TableBiddingCenter.displayName = 'TableBiddingCenter';

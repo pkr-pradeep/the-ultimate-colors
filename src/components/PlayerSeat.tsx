@@ -10,7 +10,7 @@ interface PlayerSeatProps {
   teamScore?: number;
 }
 
-export const PlayerSeat: React.FC<PlayerSeatProps> = ({
+export const PlayerSeat = React.memo<PlayerSeatProps>(({
   player,
   position,
   isCurrentTurn,
@@ -216,10 +216,12 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
     );
   }
 
-  // BOTTOM SEAT: Aadesh (Nameplate centered beneath the fan hand)
+// BOTTOM SEAT: Aadesh (Nameplate centered beneath the fan hand)
   return (
     <div className="flex flex-col items-center select-none pt-0.5">
       {renderNameplate()}
     </div>
   );
-};
+});
+
+PlayerSeat.displayName = 'PlayerSeat';
