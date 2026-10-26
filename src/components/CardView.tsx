@@ -56,6 +56,7 @@ export const CardView: React.FC<CardViewProps> = ({
   }
 
   const assetUrl = getCardAssetUrl(card);
+  const isTrumpCard = isTrump && !card.isDadajiJoker;
 
   return (
     <div
@@ -76,7 +77,13 @@ export const CardView: React.FC<CardViewProps> = ({
       } ${className}`}
     >
       {/* Outer Card Container with authentic extracted card image */}
-      <div className="w-full h-full relative rounded-lg sm:rounded-xl overflow-hidden shadow-md bg-[#fbf1dc] border border-[#6e1423]/60 flex items-center justify-center">
+      <div
+        className={`w-full h-full relative rounded-lg sm:rounded-xl overflow-hidden bg-[#fbf1dc] flex items-center justify-center transition-all ${
+          isTrumpCard
+            ? 'border-[2.5px] sm:border-[3.5px] border-blue-600 shadow-[0_0_12px_rgba(37,99,235,0.6)]'
+            : 'border border-[#6e1423]/60 shadow-md'
+        }`}
+      >
         <img
           src={assetUrl}
           alt={card.name || `${card.rank} of ${card.suit}`}
@@ -85,11 +92,9 @@ export const CardView: React.FC<CardViewProps> = ({
           draggable={false}
         />
 
-        {/* Trump Card Badge Indicator */}
-        {isTrump && !card.isDadajiJoker && (
-          <div className="absolute top-1 right-1 z-20 px-1 py-0.5 rounded-xs bg-gradient-to-r from-amber-400 to-amber-500 text-neutral-950 font-cinzel font-black text-[7px] sm:text-[8px] tracking-wider uppercase border border-amber-600 shadow-xs">
-            TRUMP
-          </div>
+        {/* Bold Blue Inner Accent Ring for Trump Suit Cards */}
+        {isTrumpCard && (
+          <div className="absolute inset-0 pointer-events-none rounded-md sm:rounded-lg ring-1 sm:ring-2 ring-blue-400/80 ring-inset shadow-[inset_0_0_8px_rgba(37,99,235,0.35)]" />
         )}
 
         {/* Dadaji Joker subtle golden aura sheen */}

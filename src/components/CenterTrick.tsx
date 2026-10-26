@@ -13,6 +13,7 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
   currentTrick,
   players,
   winningPlayerId,
+  trumpCard,
 }) => {
   // Natural slight horizontal offset and rotation mimicking the reference photo center cards
   // In the reference photo, cards lie in a horizontal row overlapping across the center:
@@ -71,10 +72,20 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
                 }`}
               >
                 <div className="sm:hidden">
-                  <CardView card={play.card} size="xs" isLegal={false} />
+                  <CardView
+                    card={play.card}
+                    size="xs"
+                    isLegal={false}
+                    isTrump={trumpCard?.suit ? play.card.suit === trumpCard.suit : false}
+                  />
                 </div>
                 <div className="hidden sm:block">
-                  <CardView card={play.card} size="sm" isLegal={false} />
+                  <CardView
+                    card={play.card}
+                    size="sm"
+                    isLegal={false}
+                    isTrump={trumpCard?.suit ? play.card.suit === trumpCard.suit : false}
+                  />
                 </div>
               </div>
             </div>
