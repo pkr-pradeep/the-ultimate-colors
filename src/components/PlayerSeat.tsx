@@ -74,13 +74,14 @@ export const PlayerSeat: React.FC<PlayerSeatProps> = ({
         <span>B:{player.bid !== null ? player.bid : '—'}</span>
         <span>W:{player.tricksWon}</span>
       </div>
-      {/* Mini 3-card stack with card count */}
+      {/* Mini CardBack with card count badge */}
       {cardCount > 0 && (
-        <div className="relative w-5 h-7 flex items-center justify-center mt-0.5">
-          <div className="absolute inset-0 rounded-[2px] bg-[#450A0A] border border-amber-500/50 shadow-xs -rotate-6" />
-          <div className="absolute inset-0 rounded-[2px] bg-[#5B0E0E] border border-amber-500/50 shadow-xs rotate-3" />
-          <div className="absolute inset-0 rounded-[2px] bg-[#6F1313] border border-amber-400/80 shadow-xs flex items-center justify-center">
-            <span className="text-[8px] font-bold text-amber-200 font-mono">{cardCount}</span>
+        <div className="relative w-5 h-7 flex items-center justify-center mt-0.5 shadow-xs">
+          <CardBack width={20} height={28} />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-[8px] font-bold text-amber-950 font-mono bg-amber-200/90 px-1 py-0.2 rounded-xs border border-amber-800/40 shadow-xs">
+              {cardCount}
+            </span>
           </div>
         </div>
       )}

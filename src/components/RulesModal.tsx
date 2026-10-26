@@ -1,5 +1,4 @@
 import React from 'react';
-import { DadajiArtwork } from './art/DadajiArtwork';
 
 interface RulesModalProps {
   isOpen: boolean;
@@ -36,9 +35,13 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
 
         {/* Dadaji Spotlight Card */}
         <div className="my-6 p-4 rounded-xl bg-gradient-to-r from-amber-950/60 via-red-950/60 to-amber-950/60 border border-amber-500/50 flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-24 h-34 flex-shrink-0">
-            <div className="w-full h-full rounded-lg bg-[#FAF6EC] border border-[#D4AF37] p-1 shadow-md">
-              <DadajiArtwork isDetailed={false} />
+          <div className="w-24 aspect-[5/7] flex-shrink-0">
+            <div className="w-full h-full rounded-lg bg-[#FAF6EC] border border-[#6e1423] p-0.5 shadow-md overflow-hidden">
+              <img
+                src="/assets/Indian_Playing_Cards/svg/53_Joker.svg"
+                alt="Dadaji Universal Joker"
+                className="w-full h-full object-fill rounded-md select-none pointer-events-none"
+              />
             </div>
           </div>
           <div className="text-left">
