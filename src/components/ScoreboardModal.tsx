@@ -13,6 +13,9 @@ interface ScoreboardModalProps {
   matchWinner?: TeamId | 'tie' | null;
   onNextHand?: () => void;
   onRestartMatch?: () => void;
+  autoDealCountdown?: number | null;
+  isAutoDealPaused?: boolean;
+  onTogglePauseAutoDeal?: () => void;
 }
 
 export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
@@ -26,6 +29,9 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
   matchWinner = null,
   onNextHand,
   onRestartMatch,
+  autoDealCountdown = null,
+  isAutoDealPaused = false,
+  onTogglePauseAutoDeal,
 }) => {
   useEffect(() => {
     if (isOpen && isMatchOver) {
@@ -196,13 +202,29 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           {!isMatchOver && onNextHand && (
-            <button
-              type="button"
-              onClick={onNextHand}
-              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-cinzel font-bold text-xs uppercase rounded-xl border border-emerald-300 shadow-md cursor-pointer transition-all"
-            >
-              Deal Next Hand (Counter-Clockwise Rotation)
-            </button>
+            <div className="flex flex-col items-center gap-1.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={onNextHand}
+                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-cinzel font-bold text-xs uppercase rounded-xl border border-emerald-300 shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
+              >
+                <span>Deal Next Hand</span>
+                {autoDealCountdown !== null && !isAutoDealPaused && (
+                  <span className="px-2 py-0.5 rounded-full bg-neutral-950/70 text-amber-300 font-mono text-[11px] border border-amber-400/50 animate-pulse">
+                    Auto in {autoDealCountdown}s
+                  </span>
+                )}
+              </button>
+              {autoDealCountdown !== null && onTogglePauseAutoDeal && (
+                <button
+                  type="button"
+                  onClick={onTogglePauseAutoDeal}
+                  className="text-[11px] text-amber-300/80 hover:text-amber-200 underline cursor-pointer"
+                >
+                  {isAutoDealPaused ? '▶ Resume Auto-Deal' : '⏸ Pause Auto-Deal'}
+                </button>
+              )}
+            </div>
           )}
 
           {isMatchOver && onRestartMatch && (

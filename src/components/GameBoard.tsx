@@ -43,8 +43,12 @@ export const GameBoard: React.FC = () => {
   const [isMatchConfigOpen, setIsMatchConfigOpen] = useState(false);
   const [isTestRunnerOpen, setIsTestRunnerOpen] = useState(false);
   const [winningHighlightId, setWinningHighlightId] = useState<PlayerId | null>(null);
+  const [autoDealCountdown, setAutoDealCountdown] = useState<number | null>(null);
+  const [isAutoDealPaused, setIsAutoDealPaused] = useState(false);
 
   const aiTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isAutoDealPausedRef = useRef(false);
+  isAutoDealPausedRef.current = isAutoDealPaused;
 
   // Clear timers on unmount
   useEffect(() => {
@@ -97,13 +101,39 @@ export const GameBoard: React.FC = () => {
   }, [gameState.phase, gameState.lastTrickWinner]);
 
   /**
-   * Automatically open Scoreboard when a hand finishes
+   * Automatically open Scoreboard and countdown to deal next hand when a hand finishes
    */
   useEffect(() => {
-    if (gameState.phase === 'round_summary' || gameState.phase === 'match_completed') {
-      setIsScoreboardOpen(true);
+    if (gameState.phase !== 'round_summary' && gameState.phase !== 'match_completed') {
+      setAutoDealCountdown(null);
+      setIsAutoDealPaused(false);
+      return;
     }
-  }, [gameState.phase]);
+
+    setIsScoreboardOpen(true);
+
+    // Only automatically deal if the match is still active (not completed)
+    if (gameState.phase === 'round_summary' && !gameState.matchWinner) {
+      setAutoDealCountdown(4);
+
+      const interval = setInterval(() => {
+        setAutoDealCountdown(prev => {
+          if (isAutoDealPausedRef.current) return prev;
+          if (prev === null) return 4;
+          if (prev <= 1) {
+            clearInterval(interval);
+            setIsScoreboardOpen(false);
+            sounds.playShuffleSound();
+            setGameState(state => advanceToNextHand(state));
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [gameState.phase, gameState.matchWinner, gameState.handNumber]);
 
   /**
    * Handle Bidding progression (AI turns during bidding and revision)
@@ -245,6 +275,8 @@ export const GameBoard: React.FC = () => {
    */
   const handleNextHand = useCallback(() => {
     setIsScoreboardOpen(false);
+    setAutoDealCountdown(null);
+    setIsAutoDealPaused(false);
     sounds.playShuffleSound();
     setGameState(prev => advanceToNextHand(prev));
   }, []);
@@ -409,6 +441,31 @@ export const GameBoard: React.FC = () => {
                 players={gameState.players}
                 onSelectBid={handleHumanSelectBid}
               />
+            ) : gameState.phase === 'round_summary' && !gameState.matchWinner ? (
+              <div className="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl bg-neutral-950/90 border-2 border-amber-600/60 shadow-2xl text-center max-w-sm animate-fade-in z-30">
+                <div className="text-amber-400 font-cinzel text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
+                  Hand {gameState.handNumber} Completed
+                </div>
+                <div className="font-script text-lg sm:text-2xl text-amber-100 font-bold mb-2">
+                  Distributing New Hand {autoDealCountdown !== null && !isAutoDealPaused ? `in ${autoDealCountdown}s...` : ''}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <button
+                    type="button"
+                    onClick={handleNextHand}
+                    className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-cinzel text-xs font-bold uppercase rounded-xl border border-emerald-300 shadow-md cursor-pointer transition-all"
+                  >
+                    Deal Now
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsScoreboardOpen(true)}
+                    className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-amber-200 font-cinzel text-xs rounded-xl border border-amber-700/50 cursor-pointer"
+                  >
+                    Scoreboard
+                  </button>
+                </div>
+              </div>
             ) : (
               <CenterTrick
                 currentTrick={gameState.currentTrick}
@@ -473,6 +530,9 @@ export const GameBoard: React.FC = () => {
         matchWinner={gameState.matchWinner}
         onNextHand={handleNextHand}
         onRestartMatch={handleRestartMatch}
+        autoDealCountdown={autoDealCountdown}
+        isAutoDealPaused={isAutoDealPaused}
+        onTogglePauseAutoDeal={() => setIsAutoDealPaused(p => !p)}
       />
 
       {/* Playbook Rules Modal */}

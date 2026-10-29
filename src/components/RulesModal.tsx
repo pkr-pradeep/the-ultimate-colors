@@ -98,16 +98,19 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
               SECTION 3: THE JOKER COMPLEX RULES
             </h4>
             <p className="leading-relaxed mb-1.5">
-              • <strong>Universal Trump Status:</strong> Under standard play, outranks every card, strictly above Trump Ace.
+              • <strong>Universal Trump Status:</strong> Outranks every card in rounds 2–12 when responding, sitting strictly above the Trump Ace.
             </p>
             <p className="leading-relaxed mb-1.5">
-              • <strong>First Round Ban:</strong> Cannot be legally played during Trick 1.
+              • <strong>First Round Ban:</strong> The Joker is denied ONLY at the 1st round (trick 1) of the game.
             </p>
             <p className="leading-relaxed mb-1.5">
-              • <strong>No Leading with Joker:</strong> Cannot start/lead a trick. If led, penalized and treated strictly as 2 of Spades for that trick.
+              • <strong>Hitting the Joker (Rounds 2–13):</strong> Players can play/hit the Joker anytime during rounds 2 to 13, even if holding cards of the led suit.
+            </p>
+            <p className="leading-relaxed mb-1.5">
+              • <strong>Starting a Trick with Joker:</strong> A player is not denied from leading with the Joker; if led, it is counted as the 2 of Spades (lead suit is Spades).
             </p>
             <p className="leading-relaxed">
-              • <strong>Last Round Devaluation:</strong> In Trick 13, supreme power is stripped; demoted to 2 of Spades. If Spades is trump, acts as low trump; if another suit is trump, acts as weak off-suit.
+              • <strong>Last Round Devaluation:</strong> In Trick 13, supreme power is stripped; demoted to 2 of Spades.
             </p>
           </div>
 

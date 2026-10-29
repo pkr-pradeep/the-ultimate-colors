@@ -336,12 +336,23 @@ export function executeCardPlay(state: GameState, playerId: PlayerId, card: Card
   // Advance turn counter-clockwise
   const nextPlayer = getNextPlayerCounterClockwise(playerId);
 
+  let playNotice = `${state.players[playerId].name} played ${card.shortName}.`;
+  if (card.isDadajiJoker) {
+    if (updatedTrick.length === 1) {
+      playNotice = `${state.players[playerId].name} led with Dadaji Joker (counted as 2 of Spades; lead suit is Spades).`;
+    } else if (state.trickNumber === 13) {
+      playNotice = `${state.players[playerId].name} played Dadaji Joker (devalued to 2 of Spades in final trick).`;
+    } else {
+      playNotice = `${state.players[playerId].name} played Dadaji Joker (Supreme Trump)!`;
+    }
+  }
+
   return {
     ...state,
     players: updatedPlayers,
     currentTrick: updatedTrick,
     turn: nextPlayer,
-    statusMessage: `${state.players[playerId].name} played ${card.shortName}. ${state.players[nextPlayer].name}'s turn.`,
+    statusMessage: `${playNotice} ${state.players[nextPlayer].name}'s turn.`,
   };
 }
 

@@ -257,39 +257,68 @@ export function runAllTests(): { passedCount: number; totalCount: number; result
   });
 
   // ================= JOKER TESTS (23-30) =================
-  test(23, 'The Joker cannot be played during the first trick', () => {
+  test(23, 'The Joker cannot be played or led during the first round (Trick 1)', () => {
     const joker = { ...DADAJI_JOKER_CARD };
     const cardHeartK: Card = { id: 'hearts_K', suit: 'hearts', rank: 'K', value: 13, cardType: 'standard', isDadajiJoker: false, name: 'King of Hearts', shortName: 'K♥' };
     const hand = [joker, cardHeartK];
 
+    // Responding in Trick 1
     const currentTrick: TrickCard[] = [
       { playerId: 'east', card: { id: 'spades_10', suit: 'spades', rank: '10', value: 10, cardType: 'standard', isDadajiJoker: false, name: '10 of Spades', shortName: '10♠' }, timestamp: 1 },
     ];
-
     const legalInTrick1 = getLegalCards(hand, currentTrick, 1, 'diamonds');
     assert(!legalInTrick1.some(c => c.isDadajiJoker), 'Joker must not be legal in Trick 1');
+    const valResp = validateCardPlay(joker, 'south', 'south', hand, currentTrick, 1, 'diamonds');
+    assert(!valResp.isValid, 'Joker play in Trick 1 must be rejected');
 
-    const val = validateCardPlay(joker, 'south', 'south', hand, currentTrick, 1, 'diamonds');
-    assert(!val.isValid, 'Rule B: Joker play in Trick 1 must be rejected');
+    // Leading in Trick 1
+    const legalLead1 = getLegalCards(hand, [], 1, 'diamonds');
+    assert(!legalLead1.some(c => c.isDadajiJoker), 'Joker must not be legal to lead in Trick 1');
+    const valLead1 = validateCardPlay(joker, 'south', 'south', hand, [], 1, 'diamonds');
+    assert(!valLead1.isValid, 'Leading Joker in Trick 1 must be rejected');
   });
 
-  test(24, 'The Joker cannot legally lead a trick', () => {
+  test(24, 'Players can hit Joker even if they hold cards of the led suit (Tricks 2–13)', () => {
+    const joker = { ...DADAJI_JOKER_CARD };
+    const cardHeartA: Card = { id: 'hearts_A', suit: 'hearts', rank: 'A', value: 14, cardType: 'standard', isDadajiJoker: false, name: 'Ace of Hearts', shortName: 'A♥' };
+    const cardHeartK: Card = { id: 'hearts_K', suit: 'hearts', rank: 'K', value: 13, cardType: 'standard', isDadajiJoker: false, name: 'King of Hearts', shortName: 'K♥' };
+    const hand = [cardHeartA, cardHeartK, joker];
+
+    // Trick led with Hearts (player holds two Hearts)
+    const currentTrick: TrickCard[] = [
+      { playerId: 'east', card: { id: 'hearts_10', suit: 'hearts', rank: '10', value: 10, cardType: 'standard', isDadajiJoker: false, name: '10 of Hearts', shortName: '10♥' }, timestamp: 1 },
+    ];
+
+    const legal = getLegalCards(hand, currentTrick, 3, 'diamonds');
+    assert(legal.some(c => c.isDadajiJoker), 'Joker must be legal even when player holds cards of the led suit');
+    assert(legal.some(c => c.id === 'hearts_A'), 'Holding led suit cards must also be legal');
+
+    const val = validateCardPlay(joker, 'south', 'south', hand, currentTrick, 3, 'diamonds');
+    assert(val.isValid, 'Hitting Joker when holding same suit cards must be valid');
+  });
+
+  test(25, 'Leading the Joker in Tricks 2–13 is not denied and counts as the 2 of Spades', () => {
     const joker = { ...DADAJI_JOKER_CARD };
     const cardHeartK: Card = { id: 'hearts_K', suit: 'hearts', rank: 'K', value: 13, cardType: 'standard', isDadajiJoker: false, name: 'King of Hearts', shortName: 'K♥' };
     const hand = [joker, cardHeartK];
 
+    // Leading in Trick 2: User is not denied
     const legalLead = getLegalCards(hand, [], 2, 'diamonds');
-    assert(!legalLead.some(c => c.isDadajiJoker), 'Joker must not be legal to lead');
-
+    assert(legalLead.some(c => c.isDadajiJoker), 'Joker must be legal to lead in Trick 2 (not denied)');
     const val = validateCardPlay(joker, 'south', 'south', hand, [], 2, 'diamonds');
-    assert(!val.isValid, 'Rule C: Leading Joker must be rejected by move validator');
-  });
+    assert(val.isValid, 'Leading Joker in Trick 2 must be valid');
 
-  test(25, 'The specified illegal-lead penalty is handled separately from legal move validation', () => {
-    const penalized = applyIllegalJokerLeadPenalty();
-    assert(penalized.suit === 'spades', 'Penalized Joker must act as Spades');
-    assert(penalized.rank === '2', 'Penalized Joker must act as 2');
-    assert(penalized.value === 2, 'Penalized Joker value must be 2');
+    // When led, it counts as 2 of Spades and does not beat a higher Spade
+    const trickWithJokerLead: TrickCard[] = [
+      { playerId: 'south', card: joker, timestamp: 1 }, // Led with Joker (counts as 2 of Spades)
+      { playerId: 'west', card: { id: 'spades_5', suit: 'spades', rank: '5', value: 5, cardType: 'standard', isDadajiJoker: false, name: '5 of Spades', shortName: '5♠' }, timestamp: 2 },
+      { playerId: 'north', card: { id: 'clubs_3', suit: 'clubs', rank: '3', value: 3, cardType: 'standard', isDadajiJoker: false, name: '3 of Clubs', shortName: '3♣' }, timestamp: 3 },
+      { playerId: 'east', card: { id: 'clubs_4', suit: 'clubs', rank: '4', value: 4, cardType: 'standard', isDadajiJoker: false, name: '4 of Clubs', shortName: '4♣' }, timestamp: 4 },
+    ];
+
+    const result = determineTrickWinner(trickWithJokerLead, 2, 'hearts', false);
+    // 5 of Spades beats 2 of Spades (led Joker)
+    assert(result.winnerId === 'west', `5 of Spades should beat led Joker (counted as 2 of Spades), got winner: ${result.winnerId}`);
   });
 
   test(26, 'The Joker outranks the Ace of trump under normal conditions', () => {

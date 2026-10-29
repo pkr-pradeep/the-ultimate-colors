@@ -9,6 +9,9 @@ export interface TrickWinnerResult {
 
 /**
  * Calculates the winner of a completed trick according to the playbook.
+ * - If Joker is played in response (not led) in tricks 2–12: Supreme Trump (beats everything).
+ * - If Joker is led: Counted as 2 of Spades (lead suit is Spades; does NOT automatically win).
+ * - If Joker is played in trick 13: Devalued to 2 of Spades.
  */
 export function determineTrickWinner(
   trick: TrickCard[],
@@ -21,30 +24,14 @@ export function determineTrickWinner(
   }
 
   const leadPlay = trick[0];
-  const leadSuit = leadPlay.card.suit;
-
-  // 1. Evaluate the Joker if present in the trick
-  const jokerPlayIndex = trick.findIndex(t => t.card.isDadajiJoker);
-
-  if (jokerPlayIndex !== -1) {
-    const jokerPlay = trick[jokerPlayIndex];
-    const jokerEffective = getEffectiveJokerCard(trickNumber);
-
-    if (!jokerEffective.isDevalued) {
-      // Normal supreme Joker (Rule A): Beats everything, including trump Ace!
-      return {
-        winnerId: jokerPlay.playerId,
-        winningCard: jokerPlay.card,
-        winningReason: 'Dadaji Universal Joker (Supreme Trump)',
-      };
-    }
-    // If devalued in Trick 13: Joker is treated strictly as the 2 of Spades!
-  }
+  // If lead card is Joker, it is counted as 2 of Spades, so lead suit is Spades!
+  const leadSuit: Suit = leadPlay.card.isDadajiJoker ? 'spades' : (leadPlay.card.suit as Suit);
 
   // Helper to get effective suit and value for a card in this trick
   function getCardEffectiveAttributes(t: TrickCard): { suit: Suit | 'joker'; value: number } {
     if (t.card.isDadajiJoker) {
-      const jokerEff = getEffectiveJokerCard(trickNumber);
+      const isLead = trick.indexOf(t) === 0;
+      const jokerEff = getEffectiveJokerCard(trickNumber, isLead);
       return {
         suit: jokerEff.effectiveSuit,
         value: jokerEff.effectiveValue,
@@ -54,6 +41,25 @@ export function determineTrickWinner(
       suit: t.card.suit as Suit,
       value: t.card.value,
     };
+  }
+
+  // 1. Evaluate the Joker if present in the trick
+  const jokerPlayIndex = trick.findIndex(t => t.card.isDadajiJoker);
+
+  if (jokerPlayIndex !== -1) {
+    const isJokerLead = jokerPlayIndex === 0;
+    const jokerPlay = trick[jokerPlayIndex];
+    const jokerEffective = getEffectiveJokerCard(trickNumber, isJokerLead);
+
+    if (!jokerEffective.isDevalued) {
+      // Normal supreme Joker (Rule A): Beats everything, including trump Ace!
+      return {
+        winnerId: jokerPlay.playerId,
+        winningCard: jokerPlay.card,
+        winningReason: 'Dadaji Universal Joker (Supreme Trump)',
+      };
+    }
+    // If devalued (Trick 13 or Joker was led): Joker is treated strictly as the 2 of Spades!
   }
 
   // 2. Standard Trump Hand: check if any trump cards were played
@@ -78,7 +84,9 @@ export function determineTrickWinner(
       return {
         winnerId: highest.play.playerId,
         winningCard: highest.play.card,
-        winningReason: `Highest Trump (${trumpSuit.toUpperCase()} ${highest.play.card.rank})`,
+        winningReason: highest.play.card.isDadajiJoker
+          ? `Trump (Joker counted as 2 of Spades)`
+          : `Highest Trump (${trumpSuit.toUpperCase()} ${highest.play.card.rank})`,
       };
     }
   }
@@ -105,7 +113,9 @@ export function determineTrickWinner(
     return {
       winnerId: highest.play.playerId,
       winningCard: highest.play.card,
-      winningReason: `Highest Lead Suit (${leadSuit.toUpperCase()} ${highest.play.card.rank})`,
+      winningReason: highest.play.card.isDadajiJoker
+        ? `Led Joker (counted as 2 of Spades)`
+        : `Highest Lead Suit (${leadSuit.toUpperCase()} ${highest.play.card.rank})`,
     };
   }
 

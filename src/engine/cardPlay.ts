@@ -1,5 +1,4 @@
 import { Card, PlayerId, Suit, TrickCard } from '../types/game';
-import { isJokerPlayLegal } from './joker';
 
 export interface CardPlayValidation {
   isValid: boolean;
@@ -7,64 +6,72 @@ export interface CardPlayValidation {
 }
 
 /**
- * Returns all legally playable cards from a player's hand according to the playbook.
+ * Returns all legally playable cards from a player's hand.
+ *
+ * Rules:
+ * 1. The Joker is denied ONLY at round 1 (trick 1) of the game.
+ * 2. From round 2 to round 13, the Joker is enabled.
+ * 3. Players can hit the Joker even if they hold cards of the led suit ("same color cards").
+ * 4. The Joker can start a round/trick in rounds 2–13 without the user being denied;
+ *    if started/led, it is counted as the 2 of Spades (lead suit is Spades).
  */
 export function getLegalCards(
   hand: Card[],
   currentTrick: TrickCard[],
   trickNumber: number,
-  trumpSuit: Suit | null
+  _trumpSuit: Suit | null
 ): Card[] {
   if (hand.length === 0) return [];
 
-  // Case 1: Leading the trick (trick is empty)
-  if (currentTrick.length === 0) {
-    // Rule C: A player cannot lead a trick with the Joker!
-    const nonJokerCards = hand.filter(c => !c.isDadajiJoker);
+  const jokerCard = hand.find(c => c.isDadajiJoker);
 
-    // If a player only has the Joker left (extreme edge case at trick 13),
-    // they have no choice but to lead it.
-    if (nonJokerCards.length === 0) {
+  // Case 1: Leading the trick (currentTrick is empty)
+  if (currentTrick.length === 0) {
+    // In Trick 1 (Round 1): Joker cannot start or be played
+    if (trickNumber === 1) {
+      const nonJokerCards = hand.filter(c => !c.isDadajiJoker);
+      if (nonJokerCards.length > 0) {
+        return nonJokerCards;
+      }
       return [...hand];
     }
 
-    return nonJokerCards;
+    // In Tricks 2 to 13:
+    // User is NOT denied from leading the Joker; if led, it will count as 2 of Spades.
+    return [...hand];
   }
 
   // Case 2: Responding to a trick
   const leadCard = currentTrick[0].card;
-  const leadSuit = leadCard.suit;
+  // If the lead card was the Joker, it is counted as the 2 of Spades, so lead suit is Spades
+  const leadSuit: Suit = leadCard.isDadajiJoker ? 'spades' : (leadCard.suit as Suit);
 
-  // Check if player holds any cards of the led suit
+  // Cards in hand matching the led suit (excluding Joker)
   const cardsOfLedSuit = hand.filter(c => c.suit === leadSuit && !c.isDadajiJoker);
 
-  if (cardsOfLedSuit.length > 0) {
-    // MUST follow suit! Cannot play off-suit and cannot play Joker!
-    return cardsOfLedSuit;
-  }
-
-  // Player has NO cards of the led suit (void):
-  // May play any off-suit card, trump card, or Joker (if Joker rule permits)
-  const legalCards: Card[] = [];
-
-  for (const card of hand) {
-    if (card.isDadajiJoker) {
-      // Check Rule B (trick 1 ban)
-      const jokerCheck = isJokerPlayLegal(false, trickNumber, true);
-      if (jokerCheck.isLegal) {
-        legalCards.push(card);
-      }
-    } else {
-      legalCards.push(card);
+  // Trick 1 (Round 1): Joker is denied!
+  if (trickNumber === 1) {
+    if (cardsOfLedSuit.length > 0) {
+      return cardsOfLedSuit;
     }
-  }
-
-  // Fallback: If only Joker in hand during trick 1 (impossible in standard 13-card deal, but safe guard)
-  if (legalCards.length === 0 && hand.length > 0) {
+    // Void in led suit: can play any card except Joker
+    const nonJokerCards = hand.filter(c => !c.isDadajiJoker);
+    if (nonJokerCards.length > 0) {
+      return nonJokerCards;
+    }
     return [...hand];
   }
 
-  return legalCards;
+  // Tricks 2 to 13: Joker is enabled!
+  // Players are able to hit the Joker even if they have cards of the led suit ("same color cards").
+  if (cardsOfLedSuit.length > 0) {
+    // Must follow suit OR can hit the Joker!
+    return jokerCard ? [...cardsOfLedSuit, jokerCard] : cardsOfLedSuit;
+  }
+
+  // Player has NO cards of the led suit (void):
+  // May play any card in hand (including off-suit, trump, or Joker)
+  return [...hand];
 }
 
 /**
@@ -77,7 +84,7 @@ export function validateCardPlay(
   hand: Card[],
   currentTrick: TrickCard[],
   trickNumber: number,
-  trumpSuit: Suit | null
+  _trumpSuit: Suit | null
 ): CardPlayValidation {
   // 1. Turn check
   if (playerId !== turn) {
@@ -90,29 +97,25 @@ export function validateCardPlay(
     return { isValid: false, error: `Player does not hold the card ${card.name}.` };
   }
 
-  // 3. Rule C: Cannot lead with the Joker
-  if (currentTrick.length === 0 && card.isDadajiJoker) {
-    // Only exception is if player literally holds nothing else
-    const hasOtherCards = hand.some(c => !c.isDadajiJoker);
-    if (hasOtherCards) {
+  // 3. Joker rules
+  if (card.isDadajiJoker) {
+    // Denied ONLY at round 1 (trick 1)
+    if (trickNumber === 1) {
       return {
         isValid: false,
-        error: 'Rule C: A player cannot lead a trick with the Dadaji Joker.',
+        error: 'The Dadaji Joker cannot be played during the first round of the game.',
       };
     }
+    // Enabled from round 2 to 13:
+    // - User is not denied if leading (counts as 2 of Spades)
+    // - Player can hit Joker even if holding cards of the led suit
+    return { isValid: true };
   }
 
-  // 4. Rule B: Cannot play Joker during trick 1
-  if (trickNumber === 1 && card.isDadajiJoker) {
-    return {
-      isValid: false,
-      error: 'Rule B: The Dadaji Joker cannot be played during the first trick of the hand.',
-    };
-  }
-
-  // 5. Following suit check
+  // 4. Non-Joker card following suit check
   if (currentTrick.length > 0) {
-    const leadSuit = currentTrick[0].card.suit;
+    const leadCard = currentTrick[0].card;
+    const leadSuit: Suit = leadCard.isDadajiJoker ? 'spades' : (leadCard.suit as Suit);
     const holdsLedSuit = hand.some(c => c.suit === leadSuit && !c.isDadajiJoker);
 
     if (holdsLedSuit && card.suit !== leadSuit) {
