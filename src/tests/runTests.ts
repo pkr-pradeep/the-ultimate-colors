@@ -7,6 +7,8 @@ import {
   dealHand,
   getNextPlayerCounterClockwise,
   validateDealtHands,
+  isHandPlayable,
+  validateDealPlayability,
 } from '../engine/dealing';
 import {
   validateIndividualBid,
@@ -30,7 +32,7 @@ import {
   executeCardPlay,
   resolveCompletedTrick,
 } from '../engine/gameEngine';
-import { Card, PlayerId, TrickCard } from '../types/game';
+import { Card, PlayerId, Suit, TrickCard } from '../types/game';
 
 interface TestResult {
   id: number;
@@ -482,13 +484,76 @@ export function runAllTests(): { passedCount: number; totalCount: number; result
     assert(threw, 'startHand must throw or prevent starting hand when matchWinner is set');
   });
 
+  // ================= PLAYABILITY TESTS (43-45) =================
+  test(43, 'A hand with no face cards (A,K,Q,J), no trump cards, and no Joker is flagged as unplayable', () => {
+    // 13 low cards from Spades and Clubs (no A, K, Q, J)
+    const unplayableHand: Card[] = [
+      { id: 'spades_3', suit: 'spades', rank: '3', value: 3, cardType: 'standard', isDadajiJoker: false, name: '3 of Spades', shortName: '3♠' },
+      { id: 'spades_4', suit: 'spades', rank: '4', value: 4, cardType: 'standard', isDadajiJoker: false, name: '4 of Spades', shortName: '4♠' },
+      { id: 'spades_5', suit: 'spades', rank: '5', value: 5, cardType: 'standard', isDadajiJoker: false, name: '5 of Spades', shortName: '5♠' },
+      { id: 'spades_6', suit: 'spades', rank: '6', value: 6, cardType: 'standard', isDadajiJoker: false, name: '6 of Spades', shortName: '6♠' },
+      { id: 'spades_7', suit: 'spades', rank: '7', value: 7, cardType: 'standard', isDadajiJoker: false, name: '7 of Spades', shortName: '7♠' },
+      { id: 'spades_8', suit: 'spades', rank: '8', value: 8, cardType: 'standard', isDadajiJoker: false, name: '8 of Spades', shortName: '8♠' },
+      { id: 'spades_9', suit: 'spades', rank: '9', value: 9, cardType: 'standard', isDadajiJoker: false, name: '9 of Spades', shortName: '9♠' },
+      { id: 'spades_10', suit: 'spades', rank: '10', value: 10, cardType: 'standard', isDadajiJoker: false, name: '10 of Spades', shortName: '10♠' },
+      { id: 'clubs_3', suit: 'clubs', rank: '3', value: 3, cardType: 'standard', isDadajiJoker: false, name: '3 of Clubs', shortName: '3♣' },
+      { id: 'clubs_4', suit: 'clubs', rank: '4', value: 4, cardType: 'standard', isDadajiJoker: false, name: '4 of Clubs', shortName: '4♣' },
+      { id: 'clubs_5', suit: 'clubs', rank: '5', value: 5, cardType: 'standard', isDadajiJoker: false, name: '5 of Clubs', shortName: '5♣' },
+      { id: 'clubs_6', suit: 'clubs', rank: '6', value: 6, cardType: 'standard', isDadajiJoker: false, name: '6 of Clubs', shortName: '6♣' },
+      { id: 'clubs_7', suit: 'clubs', rank: '7', value: 7, cardType: 'standard', isDadajiJoker: false, name: '7 of Clubs', shortName: '7♣' },
+    ];
+
+    // Trump is Hearts -> player has no face cards, no trumps (no Hearts), and no Joker
+    const playable = isHandPlayable(unplayableHand, 'hearts');
+    assert(!playable, 'Hand with no face cards, no trumps, and no Joker must NOT be playable');
+  });
+
+  test(44, 'A hand with at least one qualifying card (Face card, Trump, or Joker) is playable', () => {
+    const lowBaseCards: Card[] = [
+      { id: 'spades_3', suit: 'spades', rank: '3', value: 3, cardType: 'standard', isDadajiJoker: false, name: '3 of Spades', shortName: '3♠' },
+      { id: 'spades_4', suit: 'spades', rank: '4', value: 4, cardType: 'standard', isDadajiJoker: false, name: '4 of Spades', shortName: '4♠' },
+    ];
+
+    // Qualifying via Face card (King)
+    const withKing: Card[] = [...lowBaseCards, { id: 'diamonds_K', suit: 'diamonds' as Suit, rank: 'K' as const, value: 13, cardType: 'standard' as const, isDadajiJoker: false, name: 'King of Diamonds', shortName: 'K♦' }];
+    assert(isHandPlayable(withKing, 'hearts'), 'Hand with King must be playable');
+
+    // Qualifying via Trump card
+    const withTrump: Card[] = [...lowBaseCards, { id: 'hearts_3', suit: 'hearts' as Suit, rank: '3' as const, value: 3, cardType: 'standard' as const, isDadajiJoker: false, name: '3 of Hearts', shortName: '3♥' }];
+    assert(isHandPlayable(withTrump, 'hearts'), 'Hand with Trump must be playable');
+
+    // Qualifying via Joker
+    const withJoker = [...lowBaseCards, { ...DADAJI_JOKER_CARD }];
+    assert(isHandPlayable(withJoker, 'hearts'), 'Hand with Joker must be playable');
+  });
+
+  test(45, 'If any player has no qualifying card, the deal is flagged as unplayable', () => {
+    const validHand: Card[] = [
+      { id: 'spades_A', suit: 'spades', rank: 'A', value: 14, cardType: 'standard', isDadajiJoker: false, name: 'Ace of Spades', shortName: 'A♠' },
+    ];
+    const invalidHand: Card[] = [
+      { id: 'diamonds_3', suit: 'diamonds', rank: '3', value: 3, cardType: 'standard', isDadajiJoker: false, name: '3 of Diamonds', shortName: '3♦' },
+    ];
+
+    const hands: Record<PlayerId, Card[]> = {
+      south: validHand,
+      east: validHand,
+      north: invalidHand, // North has no face cards, no trumps, no Joker
+      west: validHand,
+    };
+
+    const result = validateDealPlayability(hands, 'spades');
+    assert(!result.isPlayable, 'Deal must be invalid if any of the 4 players lacks all qualifying cards');
+    assert(result.unplayablePlayerId === 'north', 'Must identify the unplayable player');
+  });
+
   const passedCount = results.filter(r => r.passed).length;
   return { passedCount, totalCount: results.length, results };
 }
 
 // If executed via node / tsx directly in command line
 if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('runTests')) {
-  console.log('Running Universal Joker 42 Automated Engine Tests...\n');
+  console.log('Running Universal Joker 45 Automated Engine Tests...\n');
   const outcome = runAllTests();
   for (const r of outcome.results) {
     if (r.passed) {

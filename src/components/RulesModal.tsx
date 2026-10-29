@@ -85,10 +85,13 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
             <p className="leading-relaxed mb-2">
               • <strong>Counter-Clockwise Dealer Rotation:</strong> First dealer chosen randomly; passes strictly counter-clockwise (to player on right) each round.
             </p>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed mb-2">
               • <strong>Dealing & Trump Selection:</strong> 1 card at a time counter-clockwise, first card to player directly to right of dealer. 52nd card dealt (to dealer) is turned face-up:
               <br />- <em>Standard Suit:</em> That suit becomes Trump for the round.
               <br />- <em>The Joker Twist (Equal Suits):</em> If Joker is 52nd card, hand is NOT abandoned. All suits are equal; the suit led in each trick becomes highest suit for that trick unless beaten by the Joker.
+            </p>
+            <p className="leading-relaxed pt-2 border-t border-amber-800/40 text-amber-200">
+              • <strong>Hand Playability Rule:</strong> If a player has no face card (A, K, Q, J) and no trump cards and no Joker, that game cannot be played. All four players must have at least one such card. If violated, cards are automatically reshuffled and redealt.
             </p>
           </div>
 

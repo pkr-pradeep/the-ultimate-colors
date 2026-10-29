@@ -43,7 +43,7 @@ export const TestRunnerModal: React.FC<TestRunnerModalProps> = ({ isOpen, onClos
               Authoritative Playbook Verification
             </div>
             <h3 className="font-cinzel text-lg sm:text-2xl font-black text-amber-200">
-              Automated Game Engine Tests (42 / 42)
+              Automated Game Engine Tests ({passedCount} / {totalCount})
             </h3>
             <p className="text-[11px] sm:text-xs text-amber-300/80">
               Verified against Section 15 of Universal Joker Playbook specifications

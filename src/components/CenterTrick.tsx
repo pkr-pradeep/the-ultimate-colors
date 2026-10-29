@@ -9,8 +9,9 @@ interface CenterTrickProps {
   trumpCard?: Card | null;
 }
 
-// Circular/Round offsets corresponding to the 4 player positions seated around the table:
-// South (bottom), West (left), North (top), East (right)
+// 4-Point Round / Compass layout matching official trick-taking card tables:
+// North (top), South (bottom), West (left), East (right)
+// All cards remain upright (rotate: 0) for instant legibility without eye strain.
 const ROUND_OFFSETS: Record<
   PlayerId,
   {
@@ -19,20 +20,20 @@ const ROUND_OFFSETS: Record<
   }
 > = {
   north: {
-    mobile: { x: 0, y: -24, rotate: 2 },
-    desktop: { x: 0, y: -34, rotate: 2 },
+    mobile: { x: 0, y: -44, rotate: 0 },
+    desktop: { x: 0, y: -62, rotate: 0 },
   },
   south: {
-    mobile: { x: 0, y: 22, rotate: -2 },
-    desktop: { x: 0, y: 32, rotate: -2 },
+    mobile: { x: 0, y: 44, rotate: 0 },
+    desktop: { x: 0, y: 62, rotate: 0 },
   },
   west: {
-    mobile: { x: -32, y: -2, rotate: -8 },
-    desktop: { x: -48, y: -2, rotate: -9 },
+    mobile: { x: -48, y: 0, rotate: 0 },
+    desktop: { x: -70, y: 0, rotate: 0 },
   },
   east: {
-    mobile: { x: 32, y: -2, rotate: 8 },
-    desktop: { x: 48, y: -2, rotate: 9 },
+    mobile: { x: 48, y: 0, rotate: 0 },
+    desktop: { x: 70, y: 0, rotate: 0 },
   },
 };
 
@@ -45,11 +46,11 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
   const leadCard = currentTrick.length > 0 ? currentTrick[0].card : null;
 
   return (
-    <div className="relative w-72 h-44 sm:w-110 sm:h-64 flex items-center justify-center select-none">
+    <div className="relative w-72 h-48 sm:w-110 sm:h-64 flex items-center justify-center select-none">
       {/* ================= ROUND FELT ARENA (CARDS FALL IN THIS ROUND) ================= */}
-      <div className="absolute w-36 h-36 sm:w-56 sm:h-56 rounded-full border-2 border-amber-600/30 bg-[radial-gradient(circle_at_center,rgba(217,119,6,0.14)_0%,rgba(146,64,14,0.06)_55%,transparent_85%)] pointer-events-none shadow-[inset_0_0_24px_rgba(10,5,2,0.85)] flex items-center justify-center">
+      <div className="absolute w-44 h-44 sm:w-64 sm:h-64 rounded-full border-2 border-amber-600/35 bg-[radial-gradient(circle_at_center,rgba(217,119,6,0.14)_0%,rgba(146,64,14,0.05)_60%,transparent_85%)] pointer-events-none shadow-[inset_0_0_24px_rgba(10,5,2,0.85)] flex items-center justify-center">
         {/* Subtle decorative inner compass ring */}
-        <div className="w-28 h-28 sm:w-44 sm:h-44 rounded-full border border-amber-500/15 pointer-events-none" />
+        <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-full border border-amber-500/20 pointer-events-none" />
 
         {/* Empty Trick subtle cue */}
         {currentTrick.length === 0 && (
@@ -66,7 +67,7 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
 
       {/* Live Trick Lead & Winner Pill Banner */}
       {leadCard && (
-        <div className="absolute -top-4 sm:-top-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-neutral-950/95 border border-amber-500/70 shadow-xl text-[10px] sm:text-xs whitespace-nowrap animate-fade-in">
+        <div className="absolute -top-3 sm:-top-5 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-neutral-950/95 border border-amber-500/70 shadow-xl text-[10px] sm:text-xs whitespace-nowrap animate-fade-in">
           <span className="text-amber-400 font-cinzel font-bold text-[9px] sm:text-[11px] uppercase tracking-wide">
             Lead:
           </span>
@@ -87,7 +88,7 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
         </div>
       )}
 
-      {/* Render Played Cards in a Round / Circle Formation */}
+      {/* Render Played Cards in the 4-Point Compass Round Formation */}
       <div className="relative flex items-center justify-center w-full h-full">
         {currentTrick.map((play, idx) => {
           const offsets = ROUND_OFFSETS[play.playerId] || {
@@ -109,7 +110,7 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
               <div
                 className="sm:hidden flex flex-col items-center"
                 style={{
-                  transform: `translate(${offsets.mobile.x}px, ${offsets.mobile.y}px) rotate(${offsets.mobile.rotate}deg)`,
+                  transform: `translate(${offsets.mobile.x}px, ${offsets.mobile.y}px)`,
                 }}
               >
                 {/* High-Contrast Player Name & Played Card Badge */}
@@ -137,7 +138,7 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
                 {/* The Played Card */}
                 <div
                   className={`transform transition-transform ${
-                    isWinner ? 'scale-105 ring-2 ring-amber-400 rounded-lg' : ''
+                    isWinner ? 'scale-105 ring-2 ring-amber-400 rounded-lg shadow-xl' : ''
                   }`}
                 >
                   <CardView
@@ -153,7 +154,7 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
               <div
                 className="hidden sm:flex flex-col items-center"
                 style={{
-                  transform: `translate(${offsets.desktop.x}px, ${offsets.desktop.y}px) rotate(${offsets.desktop.rotate}deg)`,
+                  transform: `translate(${offsets.desktop.x}px, ${offsets.desktop.y}px)`,
                 }}
               >
                 {/* High-Contrast Player Name & Played Card Badge */}
@@ -181,7 +182,7 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
                 {/* The Played Card */}
                 <div
                   className={`transform transition-transform ${
-                    isWinner ? 'scale-105 ring-2 ring-amber-400 rounded-xl' : ''
+                    isWinner ? 'scale-105 ring-2 ring-amber-400 rounded-xl shadow-xl' : ''
                   }`}
                 >
                   <CardView

@@ -8,7 +8,12 @@ import {
   TeamId,
   TrickCard,
 } from '../types/game';
-import { dealHand, getNextPlayerCounterClockwise, getRandomInitialDealer } from './dealing';
+import {
+  dealHand,
+  getNextPlayerCounterClockwise,
+  getRandomInitialDealer,
+  validateDealPlayability,
+} from './dealing';
 import { getBiddingSequence, validateAllBids, validateIndividualBid, validatePartnershipBid } from './bidding';
 import { getLegalCards, validateCardPlay } from './cardPlay';
 import { determineTrickWinner } from './trickWinner';
@@ -130,6 +135,18 @@ export function startHand(state: GameState, customDeck?: Card[]): GameState {
   }
 
   const deal = dealHand(state.dealer, customDeck);
+
+  // Playability Rule: If any player has no face cards (A, K, Q, J), no trumps, and no Joker,
+  // the game cannot be played. Reshuffle and redeal!
+  const playability = validateDealPlayability(deal.hands, deal.trumpSuit);
+  if (!playability.isPlayable) {
+    const unplayableName = state.players[playability.unplayablePlayerId!].name;
+    return startHand({
+      ...state,
+      statusMessage: `${unplayableName} was dealt no face cards (A,K,Q,J), no trumps, and no Joker. Hand cannot be played — reshuffled & redealt!`,
+    });
+  }
+
   const biddingSequence = getBiddingSequence(state.dealer);
 
   // Reset player bids and tricks for this hand
