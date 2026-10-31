@@ -21,9 +21,72 @@ export const STANDARD_RANKS: { rank: Rank; value: number }[] = [
 export const SUIT_NAMES: Record<Suit, string> = {
   spades: 'Spades',
   hearts: 'Hearts',
-  diamonds: 'Diamonds',
+  diamonds: 'Diamond',
   clubs: 'Clubs',
 };
+
+export const SUIT_NAMES_ODIA: Record<Suit, string> = {
+  spades: 'କଳା ପାନ୍',
+  hearts: 'ଲାଲ୍ ପାନ୍',
+  diamonds: 'ଠିକିରି',
+  clubs: 'ଚିଡ଼ିଆ',
+};
+
+export const SUIT_NAMES_HINDI: Record<Suit, string> = {
+  spades: 'हुकुम',
+  hearts: 'पान',
+  diamonds: 'ईट',
+  clubs: 'चिडि',
+};
+
+export const JOKER_NAMES = {
+  en: 'Joker',
+  hi: 'जोकर',
+  or: 'ଜୋକର୍',
+  combined: 'Joker (ଜୋକର୍ / जोकर)',
+};
+
+export const MULTILINGUAL_SUIT_NAMES: Record<
+  Suit,
+  { en: string; or: string; hi: string; combined: string }
+> = {
+  clubs: {
+    en: 'Clubs',
+    or: 'ଚିଡ଼ିଆ',
+    hi: 'चिडि',
+    combined: 'Clubs (ଚିଡ଼ିଆ / चिडि)',
+  },
+  hearts: {
+    en: 'Hearts',
+    or: 'ଲାଲ୍ ପାନ୍',
+    hi: 'पान',
+    combined: 'Hearts (ଲାଲ୍ ପାନ୍ / पान)',
+  },
+  spades: {
+    en: 'Spades',
+    or: 'କଳା ପାନ୍',
+    hi: 'हुकुम',
+    combined: 'Spades (କଳା ପାନ୍ / हुकुम)',
+  },
+  diamonds: {
+    en: 'Diamond',
+    or: 'ଠିକିରି',
+    hi: 'ईट',
+    combined: 'Diamond (ଠିକିରି / ईट)',
+  },
+};
+
+export function getSuitDisplayName(suit: Suit, lang?: 'en' | 'hi' | 'or'): string {
+  if (lang === 'hi') return SUIT_NAMES_HINDI[suit];
+  if (lang === 'or') return SUIT_NAMES_ODIA[suit];
+  return SUIT_NAMES[suit];
+}
+
+export function getJokerDisplayName(lang?: 'en' | 'hi' | 'or'): string {
+  if (lang === 'hi') return JOKER_NAMES.hi;
+  if (lang === 'or') return JOKER_NAMES.or;
+  return JOKER_NAMES.en;
+}
 
 export const SUIT_SYMBOLS: Record<Suit, string> = {
   spades: '♠',
@@ -39,8 +102,8 @@ export const DADAJI_JOKER_CARD: Card = {
   value: 16, // Outranks any standard Ace under normal conditions
   cardType: 'joker',
   isDadajiJoker: true,
-  name: 'Dadaji Universal Joker',
-  shortName: 'DADAJI',
+  name: 'Dadaji Universal Joker (ଜୋକର୍ / जोकर)',
+  shortName: 'JOKER',
 };
 
 /**

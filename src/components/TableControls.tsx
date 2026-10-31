@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Card, GameSettings, MatchConfig, Partnership, PlayerId, Suit, TeamId } from '../types/game';
 import { SuitIcon } from './art/SuitIcon';
-import { SUIT_NAMES } from '../engine/deck';
-import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X } from 'lucide-react';
+import { SUIT_NAMES, MULTILINGUAL_SUIT_NAMES } from '../engine/deck';
+import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X, HelpCircle } from 'lucide-react';
 
 interface TableControlsProps {
   handNumber: number;
@@ -25,6 +25,8 @@ interface TableControlsProps {
   onOpenTestRunner: () => void;
   onRestartHand: () => void;
   onInspectTrump: () => void;
+  onOpenTactics?: () => void;
+  onOpenWalkthrough?: () => void;
 }
 
 export const TableControls = React.memo<TableControlsProps>(({
@@ -47,6 +49,8 @@ export const TableControls = React.memo<TableControlsProps>(({
   onOpenTestRunner,
   onRestartHand,
   onInspectTrump,
+  onOpenTactics,
+  onOpenWalkthrough,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -131,6 +135,9 @@ export const TableControls = React.memo<TableControlsProps>(({
               <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-100 font-cinzel">
                 <SuitIcon suit={trumpSuit} size={15} showGoldBorder />
                 <span>{SUIT_NAMES[trumpSuit]}</span>
+                <span className="text-[10px] text-amber-300/80 font-normal font-sans hidden lg:inline">
+                  ({MULTILINGUAL_SUIT_NAMES[trumpSuit].or} / {MULTILINGUAL_SUIT_NAMES[trumpSuit].hi})
+                </span>
               </div>
               {trumpCard && (
                 <span className="text-[9px] font-mono text-amber-400 bg-amber-950/90 px-1 py-0.2 rounded border border-amber-700/50">
@@ -152,16 +159,29 @@ export const TableControls = React.memo<TableControlsProps>(({
         </div>
 
         {/* Right: Action Buttons */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Intelligence Mode Selector Pill */}
+          <button
+            type="button"
+            onClick={onOpenTactics}
+            title={`Current AI Mode: ${settings.intelligenceMode || 'legend'} (Click to view Tactics Guide)`}
+            className="flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-lg bg-neutral-900/90 border border-amber-500/60 hover:border-amber-400 text-amber-200 text-[10px] sm:text-[11px] font-cinzel font-bold shadow-sm transition-all cursor-pointer"
+          >
+            <span>
+              {settings.intelligenceMode === 'novice' ? '🌱' : settings.intelligenceMode === 'master' ? '⚔️' : '👑'}
+            </span>
+            <span className="capitalize hidden md:inline">{settings.intelligenceMode || 'legend'}</span>
+          </button>
+
           {/* Test Engine Verification Button */}
           <button
             type="button"
             onClick={onOpenTestRunner}
-            title="Inspect 42 Automated Game Engine Tests"
+            title="Inspect 52 Automated Game Engine Tests"
             className="p-1 sm:px-2 sm:py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/50 shadow-sm transition-colors flex items-center gap-1 text-[11px] font-cinzel cursor-pointer"
           >
             <CheckCheck size={13} />
-            <span className="hidden md:inline">Tests (42)</span>
+            <span className="hidden md:inline">Tests (52)</span>
           </button>
 
           {/* Match Mode Settings Button */}
@@ -189,12 +209,25 @@ export const TableControls = React.memo<TableControlsProps>(({
           <button
             type="button"
             onClick={onOpenRules}
-            title="Read Official Playbook"
+            title="Read Official Playbook (English, Hindi, Odia)"
             className="p-1 sm:px-2 sm:py-1 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors flex items-center gap-1 text-[11px] font-cinzel cursor-pointer"
           >
             <BookOpen size={13} />
             <span className="hidden md:inline">Rules</span>
           </button>
+
+          {/* Interactive Walkthrough Tour Button */}
+          {onOpenWalkthrough && (
+            <button
+              type="button"
+              onClick={onOpenWalkthrough}
+              title="Interactive Game Walkthrough Demo"
+              className="p-1 sm:px-2 sm:py-1 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors flex items-center gap-1 text-[11px] font-cinzel cursor-pointer"
+            >
+              <HelpCircle size={13} />
+              <span className="hidden md:inline">Tour</span>
+            </button>
+          )}
 
           {/* Sound Toggle */}
           <button
@@ -327,12 +360,26 @@ export const TableControls = React.memo<TableControlsProps>(({
               type="button"
               onClick={() => {
                 setIsMobileMenuOpen(false);
+                onOpenTactics?.();
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-neutral-900 text-amber-200 border border-amber-500/60 flex items-center gap-1 text-[11px] cursor-pointer"
+            >
+              <span>
+                {settings.intelligenceMode === 'novice' ? '🌱' : settings.intelligenceMode === 'master' ? '⚔️' : '👑'}
+              </span>
+              <span className="capitalize">{settings.intelligenceMode || 'legend'} Mode</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
                 onOpenTestRunner();
               }}
               className="px-2.5 py-1.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-600/50 flex items-center gap-1 text-[11px] cursor-pointer"
             >
               <CheckCheck size={13} />
-              <span>Engine Tests (42)</span>
+              <span>Tests (59)</span>
             </button>
 
             <button
@@ -346,6 +393,20 @@ export const TableControls = React.memo<TableControlsProps>(({
               <Settings size={13} />
               <span>Match Mode</span>
             </button>
+
+            {onOpenWalkthrough && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenWalkthrough();
+                }}
+                className="px-2.5 py-1.5 rounded-lg bg-neutral-900 text-amber-300 border border-amber-700/50 flex items-center gap-1 text-[11px] cursor-pointer"
+              >
+                <HelpCircle size={13} />
+                <span>Demo Tour</span>
+              </button>
+            )}
 
             <button
               type="button"

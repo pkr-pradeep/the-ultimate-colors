@@ -19,6 +19,7 @@ import { getLegalCards, validateCardPlay } from './cardPlay';
 import { determineTrickWinner } from './trickWinner';
 import { calculateHandScores } from './scoring';
 import { evaluateMatchStatus } from './match';
+import { evaluateShowHand, ShowHandAnalysis, verifyUserSelectedCards } from './showHand';
 
 export const INITIAL_PLAYERS: Record<PlayerId, Player> = {
   south: {
@@ -122,6 +123,7 @@ export function initializeMatch(
       soundEnabled: true,
       gameSpeed: 'normal',
       autoSortHand: true,
+      intelligenceMode: 'legend',
     },
   };
 }
@@ -201,7 +203,12 @@ export function startHand(state: GameState, customDeck?: Card[]): GameState {
 /**
  * Submits an individual bid during the bidding phase
  */
-export function submitPlayerBid(state: GameState, playerId: PlayerId, bid: number): GameState {
+export function submitPlayerBid(
+  state: GameState,
+  playerId: PlayerId,
+  bid: number,
+  bidReason?: string
+): GameState {
   if (state.phase !== 'bidding' && state.phase !== 'bidding_revision') {
     throw new Error('Cannot submit bid: game is not in bidding phase.');
   }
@@ -216,6 +223,7 @@ export function submitPlayerBid(state: GameState, playerId: PlayerId, bid: numbe
     [playerId]: {
       ...state.players[playerId],
       bid,
+      bidTacticalReason: bidReason,
     },
   };
 
@@ -229,6 +237,8 @@ export function submitPlayerBid(state: GameState, playerId: PlayerId, bid: numbe
 
   const allBidded = Object.values(bidsRecord).every(b => b !== null);
 
+  const reasonTag = bidReason ? ` [${bidReason}]` : '';
+
   if (!allBidded) {
     // Advance to next bidder in counter-clockwise sequence
     const nextIdx = state.biddingCurrentIndex + 1;
@@ -237,13 +247,14 @@ export function submitPlayerBid(state: GameState, playerId: PlayerId, bid: numbe
       ...state,
       players: updatedPlayers,
       biddingCurrentIndex: nextIdx,
-      statusMessage: `${state.players[playerId].name} bid ${bid}. Waiting for ${state.players[nextBidder].name}'s bid.`,
+      statusMessage: `${state.players[playerId].name} bid ${bid}${reasonTag}. Waiting for ${state.players[nextBidder].name}'s bid.`,
     };
   }
 
   // All 4 players have submitted bids: validate both partnerships!
   // Per Section 4.1: If both players of same team bid zero, default 2 is given as default bid.
-  const roundValidation = validateAllBids(bidsRecord, 'disabled', true);
+  // Reshuffle rule: If both team bids are not going 6 or more than 6, play won't happen; cards reshuffled.
+  const roundValidation = validateAllBids(bidsRecord, 'both_below_6', true);
 
   const team1Effective = roundValidation.team1Validation.effectiveBid;
   const team2Effective = roundValidation.team2Validation.effectiveBid;
@@ -354,14 +365,20 @@ export function executeCardPlay(state: GameState, playerId: PlayerId, card: Card
   const nextPlayer = getNextPlayerCounterClockwise(playerId);
 
   let playNotice = `${state.players[playerId].name} played ${card.shortName}.`;
+  const tactic = (card as any).tacticalTactic;
+
   if (card.isDadajiJoker) {
     if (updatedTrick.length === 1) {
       playNotice = `${state.players[playerId].name} led with Dadaji Joker (counted as 2 of Spades; lead suit is Spades).`;
     } else if (state.trickNumber === 13) {
       playNotice = `${state.players[playerId].name} played Dadaji Joker (devalued to 2 of Spades in final trick).`;
+    } else if (tactic) {
+      playNotice = `${state.players[playerId].name} played Dadaji Joker! [${tactic}]`;
     } else {
       playNotice = `${state.players[playerId].name} played Dadaji Joker (Supreme Trump)!`;
     }
+  } else if (tactic) {
+    playNotice = `${state.players[playerId].name} played ${card.shortName}. [${tactic}]`;
   }
 
   return {
@@ -504,3 +521,188 @@ export function advanceToNextHand(state: GameState): GameState {
 
   return startHand(nextState);
 }
+
+/**
+ * Allows the actual user (South) to skip remaining rounds once both teams have achieved their bids
+ * (e.g. Team 1 bid 5 has >= 5 tricks, Team 2 bid 6 has >= 6 tricks).
+ * Hand concludes immediately and awards scores according to contracts achieved.
+ */
+export function skipRemainingTricks(state: GameState): GameState {
+  if (state.phase !== 'playing' && state.phase !== 'trick_completed') {
+    throw new Error('Can only skip remaining tricks during active play.');
+  }
+
+  const team1 = state.partnerships.team1;
+  const team2 = state.partnerships.team2;
+
+  if (team1.tricksWon < team1.totalBid || team2.tricksWon < team2.totalBid) {
+    throw new Error('Both teams must achieve their bids before skipping remaining rounds.');
+  }
+
+  const scores = calculateHandScores(
+    team1.totalBid,
+    team1.tricksWon,
+    team2.totalBid,
+    team2.tricksWon
+  );
+
+  const team1NewScore = team1.matchScore + scores.team1.scoreDelta;
+  const team2NewScore = team2.matchScore + scores.team2.scoreDelta;
+
+  const finalPartnerships = {
+    team1: {
+      ...team1,
+      matchScore: team1NewScore,
+      roundScoreHistory: [...team1.roundScoreHistory, scores.team1.scoreDelta],
+    },
+    team2: {
+      ...team2,
+      matchScore: team2NewScore,
+      roundScoreHistory: [...team2.roundScoreHistory, scores.team2.scoreDelta],
+    },
+  };
+
+  const matchStatus = evaluateMatchStatus(
+    state.matchConfig,
+    team1NewScore,
+    team2NewScore,
+    false,
+    state.isTimeExpired
+  );
+
+  return {
+    ...state,
+    phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
+    partnerships: finalPartnerships,
+    matchWinner: matchStatus.winner,
+    statusMessage: `Both contracts achieved! Hand concluded early by user. Team 1: ${team1.tricksWon}/${team1.totalBid} tricks (${scores.team1.scoreDelta >= 0 ? '+' : ''}${scores.team1.scoreDelta} pts), Team 2: ${team2.tricksWon}/${team2.totalBid} tricks (${scores.team2.scoreDelta >= 0 ? '+' : ''}${scores.team2.scoreDelta} pts).`,
+  };
+}
+
+/**
+ * Evaluates and executes the "Show Hand" (claim remaining tricks) rule:
+ * "Similarly lets say opponent has already got their bids, your team yet to complete the bids,
+ * if you are so sure that you have those cards which can give you remaining numbers there would be show option and done.
+ * But if fail, then as part of penalty, total score-current bid."
+ */
+export function claimShowHand(
+  state: GameState,
+  selectedCardIdsOrForceSuccess?: string[] | boolean
+): GameState {
+  if (state.phase !== 'playing' && state.phase !== 'trick_completed') {
+    throw new Error('Can only claim show hand during active play.');
+  }
+
+  const team1 = state.partnerships.team1;
+  const team2 = state.partnerships.team2;
+  const neededTricks = Math.max(0, team1.totalBid - team1.tricksWon);
+
+  let isSuccess: boolean;
+  let successMsg: string;
+  let failMsg: string;
+
+  if (Array.isArray(selectedCardIdsOrForceSuccess)) {
+    const verification = verifyUserSelectedCards(state, selectedCardIdsOrForceSuccess);
+    isSuccess = verification.isValid;
+    successMsg = `Show Hand Verified! Selected cards guaranteed ${verification.verifiedWinnersCount} winning trick(s) for the needed ${verification.neededTricks} trick(s). Contract fulfilled!`;
+    failMsg = `Show Hand Verification Failed! ${verification.summary} Penalty applied: Total score reduced by bid (${team1.matchScore} - ${team1.totalBid} = ${team1.matchScore - team1.totalBid})!`;
+  } else if (typeof selectedCardIdsOrForceSuccess === 'boolean') {
+    isSuccess = selectedCardIdsOrForceSuccess;
+    const analysis = evaluateShowHand(state);
+    successMsg = `Show Hand Successful! Team 1 proved ${analysis.guaranteedWinners} winning card(s) for ${analysis.neededTricks} needed trick(s). Contract fulfilled!`;
+    failMsg = `Show Hand Failed! Lacked guaranteed winners (${analysis.guaranteedWinners}/${analysis.neededTricks}). Penalty applied: Total score reduced by bid (${team1.matchScore} - ${team1.totalBid} = ${team1.matchScore - team1.totalBid})!`;
+  } else {
+    const analysis = evaluateShowHand(state);
+    isSuccess = analysis.isGuaranteedSuccess;
+    successMsg = `Show Hand Successful! Team 1 proved ${analysis.guaranteedWinners} winning card(s) for ${analysis.neededTricks} needed trick(s). Contract fulfilled!`;
+    failMsg = `Show Hand Failed! Lacked guaranteed winners (${analysis.guaranteedWinners}/${analysis.neededTricks}). Penalty applied: Total score reduced by bid (${team1.matchScore} - ${team1.totalBid} = ${team1.matchScore - team1.totalBid})!`;
+  }
+
+  if (isSuccess) {
+    // Claim Succeeded! Team 1 tricks are fulfilled to the required contract
+    const finalTeam1Tricks = Math.max(team1.tricksWon + neededTricks, team1.totalBid);
+    const scores = calculateHandScores(
+      team1.totalBid,
+      finalTeam1Tricks,
+      team2.totalBid,
+      team2.tricksWon
+    );
+
+    const team1NewScore = team1.matchScore + scores.team1.scoreDelta;
+    const team2NewScore = team2.matchScore + scores.team2.scoreDelta;
+
+    const finalPartnerships = {
+      team1: {
+        ...team1,
+        tricksWon: finalTeam1Tricks,
+        matchScore: team1NewScore,
+        roundScoreHistory: [...team1.roundScoreHistory, scores.team1.scoreDelta],
+      },
+      team2: {
+        ...team2,
+        matchScore: team2NewScore,
+        roundScoreHistory: [...team2.roundScoreHistory, scores.team2.scoreDelta],
+      },
+    };
+
+    const matchStatus = evaluateMatchStatus(
+      state.matchConfig,
+      team1NewScore,
+      team2NewScore,
+      false,
+      state.isTimeExpired
+    );
+
+    return {
+      ...state,
+      phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
+      partnerships: finalPartnerships,
+      matchWinner: matchStatus.winner,
+      statusMessage: `${successMsg} (${scores.team1.scoreDelta >= 0 ? '+' : ''}${scores.team1.scoreDelta} pts)`,
+    };
+  } else {
+    // Claim Failed! Penalty applied: total score - current bid
+    const penaltyDeduction = team1.totalBid;
+    const team1NewScore = team1.matchScore - penaltyDeduction;
+
+    // Team 2 succeeded their contract so they get their contract score
+    const scores = calculateHandScores(
+      team1.totalBid,
+      team1.tricksWon,
+      team2.totalBid,
+      team2.tricksWon
+    );
+    const team2NewScore = team2.matchScore + scores.team2.scoreDelta;
+
+    const finalPartnerships = {
+      team1: {
+        ...team1,
+        matchScore: team1NewScore,
+        roundScoreHistory: [...team1.roundScoreHistory, -penaltyDeduction],
+      },
+      team2: {
+        ...team2,
+        matchScore: team2NewScore,
+        roundScoreHistory: [...team2.roundScoreHistory, scores.team2.scoreDelta],
+      },
+    };
+
+    const matchStatus = evaluateMatchStatus(
+      state.matchConfig,
+      team1NewScore,
+      team2NewScore,
+      false,
+      state.isTimeExpired
+    );
+
+    return {
+      ...state,
+      phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
+      partnerships: finalPartnerships,
+      matchWinner: matchStatus.winner,
+      statusMessage: failMsg,
+    };
+  }
+}
+
+

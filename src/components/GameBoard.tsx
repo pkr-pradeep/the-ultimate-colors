@@ -12,6 +12,8 @@ import {
   executeCardPlay,
   resolveCompletedTrick,
   advanceToNextHand,
+  skipRemainingTricks,
+  claimShowHand,
 } from '../engine/gameEngine';
 import { getLegalCards } from '../engine/cardPlay';
 import { calculateAIBid, chooseAICard } from '../engine/ai';
@@ -26,6 +28,11 @@ import { RulesModal } from './RulesModal';
 import { TrumpInspectModal } from './TrumpInspectModal';
 import { MatchConfigModal } from './MatchConfigModal';
 import { TestRunnerModal } from './TestRunnerModal';
+import { TacticsModal } from './TacticsModal';
+import { ShowHandModal } from './ShowHandModal';
+import { WalkthroughModal } from './WalkthroughModal';
+import { checkIsFirstTimeUser, RulebookLanguage, getSavedRulebookLanguage, saveRulebookLanguage } from '../utils/firstTimeUser';
+import { AIIntelligenceLevel } from '../types/game';
 
 export const GameBoard: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(() => {
@@ -37,14 +44,37 @@ export const GameBoard: React.FC = () => {
     return startHand(initial);
   });
 
+  const [appLanguage, setAppLanguage] = useState<RulebookLanguage>(() => getSavedRulebookLanguage());
   const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(false);
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
   const [isTrumpInspectOpen, setIsTrumpInspectOpen] = useState(false);
   const [isMatchConfigOpen, setIsMatchConfigOpen] = useState(false);
   const [isTestRunnerOpen, setIsTestRunnerOpen] = useState(false);
+  const [isTacticsOpen, setIsTacticsOpen] = useState(false);
+  const [isShowHandOpen, setIsShowHandOpen] = useState(false);
   const [winningHighlightId, setWinningHighlightId] = useState<PlayerId | null>(null);
   const [autoDealCountdown, setAutoDealCountdown] = useState<number | null>(null);
   const [isAutoDealPaused, setIsAutoDealPaused] = useState(false);
+
+  const handleAppLanguageChange = useCallback((lang: RulebookLanguage) => {
+    saveRulebookLanguage(lang);
+    setAppLanguage(lang);
+  }, []);
+
+  // First-time user detection on phone / browser
+  // Automatically pops up walkthrough on very first visit, and NEVER again once seen
+  useEffect(() => {
+    let isMounted = true;
+    checkIsFirstTimeUser().then(isFirstTime => {
+      if (isMounted && isFirstTime) {
+        setIsWalkthroughOpen(true);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const aiTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isAutoDealPausedRef = useRef(false);
@@ -165,14 +195,17 @@ export const GameBoard: React.FC = () => {
     const partnerBid = gameState.players[partnerId]?.bid;
 
     aiTimerRef.current = setTimeout(() => {
-      const aiBid = calculateAIBid(
+      const aiDecision = calculateAIBid(
         currentBidder.hand,
         gameState.trumpSuit,
         gameState.isJokerRevealHand,
-        partnerBid
+        partnerBid,
+        gameState.settings.intelligenceMode || 'legend',
+        gameState.partnerships,
+        currentBidder.teamId
       );
 
-      setGameState(prev => submitPlayerBid(prev, currentBidderId, aiBid));
+      setGameState(prev => submitPlayerBid(prev, currentBidderId, aiDecision.bid, aiDecision.tacticalReason));
     }, 550);
 
     return () => {
@@ -218,7 +251,10 @@ export const GameBoard: React.FC = () => {
           gameState.currentTrick,
           gameState.trickNumber,
           gameState.trumpSuit,
-          gameState.isJokerRevealHand
+          gameState.isJokerRevealHand,
+          gameState.settings.intelligenceMode || 'legend',
+          gameState.trickHistory,
+          gameState.partnerships
         );
 
         if (chosenCard.isDadajiJoker) {
@@ -305,12 +341,57 @@ export const GameBoard: React.FC = () => {
   }, []);
 
   /**
+   * Skip Remaining Rounds once both teams have achieved their bids
+   */
+  const handleSkipRemainingTricks = useCallback(() => {
+    sounds.playDadajiFanfare();
+    setGameState(prev => skipRemainingTricks(prev));
+  }, []);
+
+  /**
+   * Claim Remaining Tricks via "Show Hand"
+   */
+  const handleConfirmClaimShowHand = useCallback((selectedCardIds?: string[]) => {
+    setGameState(prev => {
+      const next = claimShowHand(prev, selectedCardIds);
+      const lastScoreChange = next.partnerships.team1.roundScoreHistory[next.partnerships.team1.roundScoreHistory.length - 1];
+      if (lastScoreChange && lastScoreChange > 0) {
+        sounds.playTrickWin();
+      } else {
+        sounds.playCardSnap();
+      }
+      return next;
+    });
+  }, []);
+
+  /**
    * Apply new Match Configuration (Point target or Time Mode)
    */
   const handleApplyMatchConfig = (config: MatchConfig) => {
     sounds.playShuffleSound();
     const fresh = initializeMatch(config);
     setGameState(startHand(fresh));
+  };
+
+  /**
+   * Intelligence Mode (Novice / Master / Legend)
+   */
+  const handleSetIntelligenceMode = (mode: AIIntelligenceLevel) => {
+    sounds.playClick();
+    setGameState(prev => ({
+      ...prev,
+      settings: {
+        ...prev.settings,
+        intelligenceMode: mode,
+      },
+      statusMessage: `AI Intelligence Mode set to ${mode.toUpperCase()}. ${
+        mode === 'novice'
+          ? 'Basic trick-taking active.'
+          : mode === 'master'
+          ? 'Partner protection & honor preservation active.'
+          : 'Full tactical arsenal: King-Rescue, Trump-Ace Decapitation & Void Memory active!'
+      }`,
+    }));
   };
 
   /**
@@ -343,9 +424,27 @@ export const GameBoard: React.FC = () => {
     gameState.phase === 'bidding' || gameState.phase === 'bidding_revision';
   const currentBidderId = gameState.biddingOrder[gameState.biddingCurrentIndex];
   const isHumanBiddingTurn =
-    isBiddingPhase &&
-    (currentBidderId === 'south' ||
-      (gameState.phase === 'bidding_revision' && gameState.invalidPartnershipId === 'team1'));
+  isBiddingPhase &&
+  (currentBidderId === 'south' ||
+    (gameState.phase === 'bidding_revision' && gameState.invalidPartnershipId === 'team1'));
+
+  const team1 = gameState.partnerships.team1;
+  const team2 = gameState.partnerships.team2;
+  const isPlayingPhase = gameState.phase === 'playing' || gameState.phase === 'trick_completed';
+  const bothContractsMet =
+    isPlayingPhase &&
+    team1.totalBid > 0 &&
+    team2.totalBid > 0 &&
+    team1.tricksWon >= team1.totalBid &&
+    team2.tricksWon >= team2.totalBid &&
+    gameState.trickNumber <= 13;
+  const canShowHand =
+    isPlayingPhase &&
+    team1.totalBid > 0 &&
+    team2.totalBid > 0 &&
+    team2.tricksWon >= team2.totalBid &&
+    team1.tricksWon < team1.totalBid;
+  const tricksNeeded = Math.max(0, team1.totalBid - team1.tricksWon);
 
   return (
     <div className="relative w-full h-[100dvh] max-h-[100dvh] bg-[#1c0d06] text-neutral-100 flex flex-col justify-between overflow-hidden select-none font-outfit">
@@ -387,6 +486,8 @@ export const GameBoard: React.FC = () => {
         onOpenScoreboard={() => setIsScoreboardOpen(true)}
         onOpenMatchConfig={() => setIsMatchConfigOpen(true)}
         onOpenTestRunner={() => setIsTestRunnerOpen(true)}
+        onOpenTactics={() => setIsTacticsOpen(true)}
+        onOpenWalkthrough={() => setIsWalkthroughOpen(true)}
         onRestartHand={handleRedealHand}
         onInspectTrump={() => setIsTrumpInspectOpen(true)}
       />
@@ -434,8 +535,11 @@ export const GameBoard: React.FC = () => {
                   humanPlayer.hand,
                   gameState.trumpSuit,
                   gameState.isJokerRevealHand,
-                  gameState.players.north.bid
-                )}
+                  gameState.players.north.bid,
+                  gameState.settings.intelligenceMode || 'legend',
+                  gameState.partnerships,
+                  'team1'
+                ).bid}
                 partnerName="Hriday"
                 partnerBid={gameState.players.north.bid}
                 players={gameState.players}
@@ -492,6 +596,39 @@ export const GameBoard: React.FC = () => {
       {/* ================= BOTTOM FAN HAND & AADESH SEAT (HUMAN PLAYER) ================= */}
       {/* Wide horizontal natural fan with Aadesh calligraphic nameplate centered directly beneath */}
       <footer className="w-full max-w-full relative z-20 pb-0.5 sm:pb-1 flex flex-col items-center flex-shrink-0 overflow-x-clip">
+        {/* User Interactive Hand Action Prompts: Skip Remaining Rounds or Show Hand */}
+        {bothContractsMet && (
+          <div className="mb-1.5 z-30 animate-pulse">
+            <button
+              type="button"
+              onClick={handleSkipRemainingTricks}
+              className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-neutral-950 font-cinzel text-xs sm:text-sm font-black uppercase tracking-wider shadow-2xl border-2 border-amber-200 cursor-pointer flex items-center gap-2 transition-transform transform hover:scale-105 active:scale-95"
+            >
+              <span>⚡</span>
+              <span>Skip Remaining Rounds (Both Contracts Met)</span>
+              <span className="text-[10px] bg-neutral-900/85 text-amber-200 px-2 py-0.5 rounded-full font-mono font-bold">
+                T1: {team1.tricksWon}/{team1.totalBid} · T2: {team2.tricksWon}/{team2.totalBid}
+              </span>
+            </button>
+          </div>
+        )}
+
+        {canShowHand && (
+          <div className="mb-1.5 z-30">
+            <button
+              type="button"
+              onClick={() => setIsShowHandOpen(true)}
+              className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-cinzel text-xs sm:text-sm font-bold uppercase tracking-wider shadow-2xl border-2 border-emerald-300 cursor-pointer flex items-center gap-2 transition-transform transform hover:scale-105 active:scale-95"
+            >
+              <span>🖐️</span>
+              <span>Show Hand (Claim Remaining Tricks)</span>
+              <span className="text-[10px] bg-black/60 text-emerald-200 px-2 py-0.5 rounded-full font-mono font-bold">
+                Need {tricksNeeded} more trick{tricksNeeded !== 1 ? 's' : ''}
+              </span>
+            </button>
+          </div>
+        )}
+
         <PlayerHandFan
           cards={humanPlayer.hand}
           legalCards={
@@ -533,10 +670,29 @@ export const GameBoard: React.FC = () => {
         autoDealCountdown={autoDealCountdown}
         isAutoDealPaused={isAutoDealPaused}
         onTogglePauseAutoDeal={() => setIsAutoDealPaused(p => !p)}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
       />
 
-      {/* Playbook Rules Modal */}
-      <RulesModal isOpen={isRulesOpen} onClose={() => setIsRulesOpen(false)} />
+      {/* Interactive Windows Update-style Demo Walkthrough Modal */}
+      <WalkthroughModal
+        isOpen={isWalkthroughOpen}
+        onClose={() => setIsWalkthroughOpen(false)}
+        onOpenRulebook={(lang) => {
+          if (lang) handleAppLanguageChange(lang);
+          setIsRulesOpen(true);
+        }}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
+      />
+
+      {/* Playbook Rules Modal (Odia, Hindi, English) */}
+      <RulesModal
+        isOpen={isRulesOpen}
+        onClose={() => setIsRulesOpen(false)}
+        initialLanguage={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
+      />
 
       {/* Trump Card Inspection Modal */}
       <TrumpInspectModal
@@ -544,6 +700,8 @@ export const GameBoard: React.FC = () => {
         onClose={() => setIsTrumpInspectOpen(false)}
         trumpSuit={gameState.trumpSuit}
         trumpCard={gameState.trumpCard}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
       />
 
       {/* Match Configuration Modal */}
@@ -552,12 +710,36 @@ export const GameBoard: React.FC = () => {
         onClose={() => setIsMatchConfigOpen(false)}
         currentConfig={gameState.matchConfig}
         onApplyConfig={handleApplyMatchConfig}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
       />
 
       {/* Automated Playbook Test Runner Modal */}
       <TestRunnerModal
         isOpen={isTestRunnerOpen}
         onClose={() => setIsTestRunnerOpen(false)}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
+      />
+
+      {/* AI Tactics & Intelligence Modes Modal */}
+      <TacticsModal
+        isOpen={isTacticsOpen}
+        onClose={() => setIsTacticsOpen(false)}
+        currentMode={gameState.settings.intelligenceMode || 'legend'}
+        onSelectMode={handleSetIntelligenceMode}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
+      />
+
+      {/* Show Hand / Claim Contract Modal */}
+      <ShowHandModal
+        isOpen={isShowHandOpen}
+        onClose={() => setIsShowHandOpen(false)}
+        gameState={gameState}
+        onConfirmClaim={handleConfirmClaimShowHand}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
       />
     </div>
   );

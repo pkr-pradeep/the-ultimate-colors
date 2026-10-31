@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, PlayerId, Suit, TeamId } from '../types/game';
 import { CardView } from './CardView';
 import { SuitIcon } from './art/SuitIcon';
-import { SUIT_NAMES } from '../engine/deck';
+import { SUIT_NAMES, MULTILINGUAL_SUIT_NAMES } from '../engine/deck';
 import { AlertCircle } from 'lucide-react';
 
 interface TableBiddingCenterProps {
@@ -107,8 +107,11 @@ export const TableBiddingCenter = React.memo<TableBiddingCenterProps>(({
                 ) : trumpSuit ? (
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-950/90 to-neutral-950/90 border border-amber-500/70 shadow-xs">
                     <SuitIcon suit={trumpSuit} size={15} showGoldBorder />
-                    <span className="text-[10px] sm:text-[11px] font-cinzel font-black text-amber-200 uppercase tracking-wide">
+                    <span className="text-[10px] sm:text-[11px] font-cinzel font-black text-amber-200 tracking-wide">
                       Trump: {SUIT_NAMES[trumpSuit]}
+                      <span className="font-normal font-sans text-amber-300/80 ml-1">
+                        ({MULTILINGUAL_SUIT_NAMES[trumpSuit].or} / {MULTILINGUAL_SUIT_NAMES[trumpSuit].hi})
+                      </span>
                     </span>
                     {trumpCard && (
                       <span className="text-[9px] font-mono text-amber-300 bg-amber-950/80 px-1 rounded border border-amber-800/40">

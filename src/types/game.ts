@@ -52,6 +52,7 @@ export interface Player {
   isHuman: boolean;
   hand: Card[];
   bid: number | null;
+  bidTacticalReason?: string;
   tricksWon: number;
 }
 
@@ -88,10 +89,13 @@ export interface MatchConfig {
   durationSeconds: number; // e.g. 1800 for 30 minutes in Time mode
 }
 
+export type AIIntelligenceLevel = 'novice' | 'master' | 'legend';
+
 export interface GameSettings {
   soundEnabled: boolean;
   gameSpeed: 'normal' | 'fast';
   autoSortHand: boolean;
+  intelligenceMode: AIIntelligenceLevel;
 }
 
 export interface GameState {

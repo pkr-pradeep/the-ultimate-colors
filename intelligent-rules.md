@@ -13,6 +13,49 @@ This document establishes the **Intelligent Rules Architecture** governing playe
 3. **Tactical Joker Deployment** (when to strike, the "King Rescue" maneuver, decapitating the Trump Ace, and avoiding the Trick 13 devaluation trap).
 4. **Passing vs. Playing Discipline** (ducking, never overtaking winning partners, discarding junk cards, conserving stoppers).
 5. **Contract Protection & Endgame Timing** (playing to fulfill the team contract and prevent opponent sweeps).
+6. **Progressive 3-Tier Mode Unveiling** (Novice, Master, Legend) where tricks are unlocked step-by-step.
+
+---
+
+### 1.1. The 3-Tier Intelligence Unveiling Model
+
+The game provides three distinct intelligence modes so tricks are unveiled progressively:
+
+| Intelligence Mode | Unveiled Strategic Tricks | Tactical Limitations / Behavior |
+| :--- | :--- | :--- |
+| **🌱 Novice** | • Strict legal follow-suit compliance.<br>• Lowest-winner / lowest-loser plays.<br>• Random legal card leads. | • **No Card Memory**: Does not remember played Aces or trumps.<br>• **No Void Matrix**: Does not track opponent suit voids.<br>• **No King-Rescue**: Walks King into opponent Ace.<br>• **No Decapitation**: Does not target Trump Ace.<br>• May accidentally overtake winning partner. |
+| **⚔️ Master** | • **Partner Protection**: Never overtakes winning partner.<br>• **Trick 12 Mandate**: Cashes Joker before Trick 13 devaluation.<br>• **Honor Ducking**: Protects Kings from unplayed Aces.<br>• **Basic Ace Cashing**: Leads Aces before opponents develop voids.<br>• **Over-Trumping**: Denies cheap trick steals. | • **No Full Void Matrix**: Does not track all 4 players' declared voids.<br>• **No King-Rescue**: Does not use Joker to rescue trapped King.<br>• **No Trump-Ace Decapitation**: Uses standard response logic. |
+| **👑 Legend** | • **Full 4-Registry Memory**: Aces, Kings, Queens, Jacks, and trumps.<br>• **👑 King-Rescue Strike**: Slams Joker on opponent Ace to save own King.<br>• **⚡ Trump-Ace Decapitation**: Kills opponent's Trump Ace with Joker.<br>• **🎯 Partner Void Feeding**: Leads low in partner's void for ruffs.<br>• **💎 Dynamic Boss Promotion**: Cashes promoted Kings/Queens as bosses.<br>• **🎲 Calculated Risks & Bold Gambits**: Aggressive stretch bids, 10-bid milestone pushes, under-lead finesses, trump bleeding, smooth tenace ducks, Boston pursuit/interception. | • Full tactical arsenal active at all times with real-time HUD annotations. |
+
+---
+
+### 1.2. The Legend Mode "Calculated Risk" Philosophy
+
+In Legend Mode, AI players do not play like cautious automatons. They evaluate game conditions, scoring margins, and distributional leverage to make **high-reward, calculated gambits**:
+
+#### A. Calculated Risks During Bidding:
+1. **The Milestone 10-Contract Push (`⚔️ Calculated 10-Bid Push (+20 Bonus Attempt)`)**:
+   - Reaching a combined team bid of 10 earns **+20 points** (double reward) instead of the standard +9. If the partnership is on 8 or 9 combined bids and the hand possesses distributional ruffing strength or an unassailable trump stopper, Legend takes the calculated leap to push the contract to 10.
+2. **Deficit-Driven Comeback Gambits (`🔥 Calculated Comeback Gambit`)**:
+   - If the team trails by 25+ points in match score, conservative bidding guarantees slow defeat. Legend calculates variance and stretches bids by +1 to provoke a match turnaround.
+3. **Distributional Shape & Cross-Ruffing Valuation (`🎯 Calculated Shape Stretch`)**:
+   - A hand with side-suit voids or singletons combined with 3+ trumps is credited with +1.0 to +1.5 extra tricks, calculating early ruffing potential.
+4. **Calculated Tactical Nil (`🧊 Calculated Nil (Clean Ducking)`)**:
+   - If dealt weak cards and partner has bid 2+, Legend declares a calculated 0-bid to ensure zero accidental trick-steals, clearing the runway for partner.
+5. **Boston 13-Trick Shot (`🚀 Calculated Boston 13-Trick Shot`)**:
+   - When partner bids 6+ and Legend holds absolute trump control (Ace + Joker + 2 side Aces), Legend aggressively locks in a 13-bid for the +26 maximum score.
+
+#### B. Calculated Risks During Card Play:
+1. **The Under-lead Finesse (`🎲 Calculated Under-lead Finesse`)**:
+   - Holding **Ace + Queen** or **King + Jack**, Legend does *not* blindly slam the Ace on lead. Instead, it leads a low card through the opponent toward partner, taking the calculated chance to trap the opponent's King or promote the Queen into a second winner.
+2. **Trump Extraction / Bleeding (`⚔️ Calculated Trump Extraction`)**:
+   - Holding dominant trumps and side-suit Boss honors, Legend takes the risk of aggressively leading trumps to strip opponents of their ruffing power, shielding its side Kings/Queens.
+3. **Smooth Tenace Duck (`🧊 Calculated Smooth Duck`)**:
+   - When an opponent leads a Queen or Jack into Legend's Ace-King or King-10 holding, Legend smoothly ducks low, forcing the opponent to lead again directly into Legend's fortified trap.
+4. **Boston Interception Strike (`💥 Calculated Boston Interception`)**:
+   - If the opposing team has swept all tricks up to Trick 4–6, Legend unleashes maximum force (sacrificing the Joker or top trump) to kill the Boston sweep immediately.
+5. **Critical Contract Denial Strike (`🛡️ Calculated Contract Denial Strike`)**:
+   - When opponents are 1 trick away from clinching their contract, Legend prioritizes stopping the trick with its best weapon.
 
 ---
 
@@ -176,3 +219,36 @@ Step 1: Check Current Trick State
 - [x] **Never Kill Partner's Trick:** If Partner's card is currently highest, discard low; keep your strength for future rounds.
 - [x] **Trick 13 Avoidance:** Never hold the Joker until Trick 13 where it becomes 2♠; cash it in Trick 12 at the latest.
 - [x] **Lead With Bosses, Not Jokers:** Cash established high cards; never start a trick with Joker unless forced.
+
+---
+
+## 9. Advanced Table Governance & Contract Acceleration Rules
+
+### 9.1. Minimum 6-Bid Threshold & Automatic Reshuffle
+* **Rule:** If both team bids fail to reach 6 or more (i.e. `team1EffectiveBid < 6 && team2EffectiveBid < 6`), play will **not** happen.
+* **Mechanism:** The hand is immediately declared void without score penalties. Cards are automatically gathered, reshuffled, and dealt by the next dealer counter-clockwise.
+* **Example:**
+  - Team 1 bids 5, Team 2 bids 5 $\rightarrow$ Both below 6 $\rightarrow$ **Reshuffle triggered!**
+  - Team 1 bids 5, Team 2 bids 6 $\rightarrow$ Team 2 reached 6 $\rightarrow$ **Play proceeds!**
+
+### 9.2. Early Round Skip Once Both Contracts Achieved (User Privilege)
+* **Rule:** Once both teams have fulfilled their respective contracts (e.g. Team 1 bid 5 has won $\ge 5$ tricks, Team 2 bid 6 has won $\ge 6$ tricks), players do not have to play all remaining tricks out of 13.
+* **Capability:** **Only the actual human user (South)** has the interactive button and capability to skip all remaining rounds.
+* **Outcome:** When clicked, the hand concludes instantly, awarding hand scores based on the contracts achieved and transitioning cleanly to the Round Summary screen.
+
+### 9.3. "Show Hand" (Claim Contract), Interactive Card Selection & Verification
+* **Rule:** When the opponent team has already achieved their contract (`team2.tricksWon >= team2.totalBid`), but your team has yet to complete your bid (`team1.tricksWon < team1.totalBid`), the user has an interactive **"Show Hand"** option.
+* **Interactive Card Selection:**
+  - The human player (South) selects the specific $N$ card(s) from their hand (and partner's hand) claimed to win the remaining needed tricks ($N = \text{totalBid} - \text{tricksWon}$).
+  - Live visual feedback highlights selected cards and displays selection count vs needed tricks.
+* **System Mathematical Verification:**
+  - The system tests the user-selected cards against all remaining opponent cards (East & West):
+    1. **Dadaji Joker:** Supreme trump (trick $< 13$) unconditionally beats any opponent card.
+    2. **Trump Cards:** Verified in descending order against opponent trumps and opponent Dadaji Joker; extracts opponent trumps if higher.
+    3. **Side-Suit Cards:** Verified to ensure opponents have zero remaining trumps to ruff, and verified higher than opponent holdings in that suit.
+* **Outcomes:**
+  - **Success (100% Guaranteed):** If the user-selected cards prove mathematically unassailable, verification passes! Contract tricks are credited, points are awarded, and victory fanfare plays.
+  - **Failure (Penalty Enforced):** If the user selects insufficient cards or cards that opponents can defeat (e.g. opponent holds a higher trump or off-suit ruff), verification fails and the penalty is strictly enforced:
+    $$\text{Penalty} = \text{Total Score} - \text{Current Bid}$$
+    The current bid is deducted directly from the team's total match score ($\text{Score} \leftarrow \text{Score} - \text{Current Bid}$).
+

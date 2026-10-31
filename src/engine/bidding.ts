@@ -96,18 +96,29 @@ export function validatePartnershipBid(
  * If applied strictly as `summation > 5`, then no High Contracts (bids 10–13, Section 5.1) or Boston Sweeps (13, Section 5.3)
  * could ever be played because any contract >= 10 has a summation > 5.
  * In card games, such reshuffle clauses typically intend either:
+ * - 'both_below_6': If both team bids are strictly below 6 (neither reaches 6+), cards are reshuffled.
  * - 'strict_playbook_above_5': Exactly as written (sum > 5 triggers reshuffle by next right).
  * - 'low_bid_below_5': The common rule where if table total bids is < 5 (e.g. 2 + 2 = 4), cards are reshuffled.
- * - 'disabled': Allows full high-contract play (10–13) without unintended redeals.
+ * - 'disabled': Allows play regardless of bid totals without redeals.
  */
+export type ReshuffleMode = 'both_below_6' | 'strict_playbook_above_5' | 'low_bid_below_5' | 'disabled';
+
 export function checkReshuffleCondition(
   team1EffectiveBid: number,
   team2EffectiveBid: number,
-  mode: 'strict_playbook_above_5' | 'low_bid_below_5' | 'disabled' = 'disabled'
+  mode: ReshuffleMode = 'both_below_6'
 ): { requiresReshuffle: boolean; reason?: string } {
   const sum = team1EffectiveBid + team2EffectiveBid;
 
-  if (mode === 'strict_playbook_above_5') {
+  if (mode === 'both_below_6') {
+    // Both team bids are not going 6 or more than 6 -> play won't happen, reshuffle cards
+    if (team1EffectiveBid < 6 && team2EffectiveBid < 6) {
+      return {
+        requiresReshuffle: true,
+        reason: `Neither team reached a contract of 6 or more (Team 1 bid ${team1EffectiveBid}, Team 2 bid ${team2EffectiveBid}). Per minimum 6-bid threshold rule, cards are reshuffled!`,
+      };
+    }
+  } else if (mode === 'strict_playbook_above_5') {
     if (sum > 5) {
       return {
         requiresReshuffle: true,
@@ -131,7 +142,7 @@ export function checkReshuffleCondition(
  */
 export function validateAllBids(
   bids: Record<PlayerId, number | null>,
-  reshuffleMode: 'strict_playbook_above_5' | 'low_bid_below_5' | 'disabled' = 'disabled',
+  reshuffleMode: ReshuffleMode = 'both_below_6',
   applyDefaultTwoForDoubleZero: boolean = false
 ): BiddingRoundValidation {
   // Check if any player hasn't bid
