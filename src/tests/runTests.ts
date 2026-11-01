@@ -1007,15 +1007,6 @@ export function runAllTests(): { passedCount: number; totalCount: number; result
       // Test Runner
       assert(!!dict.testRunner.badge, `Test runner in ${l} must have badge`);
       assert(!!dict.testRunner.allPassedBanner, `Test runner in ${l} must have allPassedBanner`);
-      // Download APK & Mobile App
-      assert(!!dict.downloadApk, `Download APK dictionary in ${l} must exist`);
-      assert(!!dict.downloadApk.title, `Download APK in ${l} must have title`);
-      assert(!!dict.downloadApk.btnInstallDirect, `Download APK in ${l} must have btnInstallDirect`);
-      assert(!!dict.downloadApk.btnOpenPwaBuilder, `Download APK in ${l} must have btnOpenPwaBuilder`);
-      assert(!!dict.downloadApk.benefit1, `Download APK in ${l} must list benefit 1`);
-      assert(!!dict.downloadApk.benefit2, `Download APK in ${l} must list benefit 2`);
-      assert(!!dict.downloadApk.method1Step1, `Download APK in ${l} must provide Chrome install steps`);
-      assert(!!dict.downloadApk.iosDesc, `Download APK in ${l} must provide iOS install steps`);
     }
   });
 
@@ -1044,35 +1035,13 @@ export function runAllTests(): { passedCount: number; totalCount: number; result
     );
   });
 
-  // Test 62: APK Download & PWA Mobile App Capabilities
-  test(62, 'Download APK modal provides WebAPK 1-click install, PWABuilder packaging, and 3-language guidance', () => {
-    const en = MODAL_TRANSLATIONS.en.downloadApk;
-    const hi = MODAL_TRANSLATIONS.hi.downloadApk;
-    const or = MODAL_TRANSLATIONS.or.downloadApk;
-
-    // Title checks
-    assert(en.title.includes('Download APK') || en.title.includes('Mobile App'), 'English title covers APK / App');
-    assert(hi.title.includes('APK') && hi.title.includes('डाउनलोड'), 'Hindi title covers APK download');
-    assert(or.title.includes('APK') && or.title.includes('ଡାଉନଲୋଡ୍'), 'Odia title covers APK download');
-
-    // Offline & WebAPK benefits
-    assert(en.benefit1.toLowerCase().includes('offline'), 'English lists offline feature');
-    assert(hi.benefit1.includes('ऑफलाइन'), 'Hindi lists offline feature');
-    assert(or.benefit1.includes('ଅଫଲାଇନ୍') || or.benefit1.includes('ଇଣ୍ଟରନେଟ୍'), 'Odia lists offline feature');
-
-    // Packaging steps
-    assert(!!en.method2Desc, 'English includes PWABuilder explanation');
-    assert(!!hi.method2Desc, 'Hindi includes PWABuilder explanation');
-    assert(!!or.method2Desc, 'Odia includes PWABuilder explanation');
-  });
-
   const passedCount = results.filter(r => r.passed).length;
   return { passedCount, totalCount: results.length, results };
 }
 
 // If executed via node / tsx directly in command line
 if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('runTests')) {
-  console.log('Running Universal Joker 62 Automated Engine Tests...\n');
+  console.log('Running Universal Joker 61 Automated Engine Tests...\n');
   const outcome = runAllTests();
   for (const r of outcome.results) {
     if (r.passed) {

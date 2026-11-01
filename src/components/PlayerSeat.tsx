@@ -22,7 +22,7 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
   // Nameplate component matching the exact calligraphic ivory strip from the reference photo
   const renderNameplate = (extraClass = '') => (
     <div
-      className={`relative inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-0.5 sm:py-1 bg-[#FAF6EC] text-[#1A1009] border border-[#C5B499]/80 shadow-[0_4px_10px_rgba(0,0,0,0.35)] rounded-[2px] select-none transition-all duration-300 ${
+      className={`relative inline-flex items-center gap-1 sm:gap-1.5 md:gap-2 px-2 sm:px-3 md:px-5 py-0.5 sm:py-1 bg-[#FAF6EC] text-[#1A1009] border border-[#C5B499]/80 shadow-[0_4px_10px_rgba(0,0,0,0.35)] rounded-[2px] select-none transition-all duration-300 ${
         isCurrentTurn
           ? 'ring-2 ring-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)]'
           : ''
@@ -39,12 +39,12 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
       )}
 
       {/* Script Name */}
-      <span className="font-script text-base sm:text-2xl font-bold tracking-wide whitespace-nowrap">
+      <span className="font-script text-sm sm:text-base md:text-xl font-bold tracking-wide whitespace-nowrap">
         {player.name}
       </span>
 
       {/* Discreet Game Info (Bid / Won) */}
-      <span className="text-[9px] sm:text-[10px] font-outfit text-amber-950/70 border-l border-amber-800/20 pl-1.5 sm:pl-2 whitespace-nowrap">
+      <span className="text-[9px] sm:text-[10px] md:text-xs font-outfit text-amber-950/70 border-l border-amber-800/20 pl-1 sm:pl-1.5 md:pl-2 whitespace-nowrap">
         B:{player.bid !== null ? player.bid : '—'} · W:{player.tricksWon}
       </span>
     </div>
@@ -114,9 +114,12 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
                   className="transform origin-top transition-transform"
                 >
                   <div className="sm:hidden">
-                    <CardBack width={22} height={32} />
+                    <CardBack width={20} height={28} />
                   </div>
-                  <div className="hidden sm:block">
+                  <div className="hidden sm:block md:hidden">
+                    <CardBack width={24} height={34} />
+                  </div>
+                  <div className="hidden md:block">
                     <CardBack width={28} height={40} />
                   </div>
                 </div>
@@ -131,7 +134,7 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
   // LEFT SEAT: Shilaa
   if (position === 'left') {
     return (
-      <div className="relative flex items-center justify-center select-none w-auto sm:w-28 md:w-32 min-h-0 flex-shrink-0">
+      <div className="relative flex items-center justify-center select-none w-auto sm:w-20 md:w-28 lg:w-32 min-h-0 flex-shrink-0">
         {/* Compact Token on Mobile (< 640px) */}
         {renderMobileSideToken()}
 
@@ -144,7 +147,7 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
 
           {/* Vertical Curved Crescent Arc of Face-Down Cards */}
           {cardCount > 0 && (
-            <div className="relative flex flex-col items-center justify-center -space-y-8 sm:-space-y-8.5 z-10 scale-90 sm:scale-95">
+            <div className="relative flex flex-col items-center justify-center -space-y-8 sm:-space-y-8.5 z-10 scale-75 sm:scale-80 md:scale-90 lg:scale-95">
               {Array.from({ length: cardCount }).map((_, i) => {
                 const centerIdx = (cardCount - 1) / 2;
                 const norm = i - centerIdx;
@@ -161,7 +164,12 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
                     }}
                     className="transform origin-center transition-transform"
                   >
-                    <CardBack width={32} height={46} />
+                    <div className="sm:block md:hidden">
+                      <CardBack width={26} height={38} />
+                    </div>
+                    <div className="hidden md:block">
+                      <CardBack width={32} height={46} />
+                    </div>
                   </div>
                 );
               })}
@@ -175,7 +183,7 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
   // RIGHT SEAT: Mainaa
   if (position === 'right') {
     return (
-      <div className="relative flex items-center justify-center select-none w-auto sm:w-28 md:w-32 min-h-0 flex-shrink-0">
+      <div className="relative flex items-center justify-center select-none w-auto sm:w-20 md:w-28 lg:w-32 min-h-0 flex-shrink-0">
         {/* Compact Token on Mobile (< 640px) */}
         {renderMobileSideToken()}
 
@@ -188,7 +196,7 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
 
           {/* Vertical Curved Crescent Arc of Face-Down Cards */}
           {cardCount > 0 && (
-            <div className="relative flex flex-col items-center justify-center -space-y-8 sm:-space-y-8.5 z-10 scale-90 sm:scale-95">
+            <div className="relative flex flex-col items-center justify-center -space-y-8 sm:-space-y-8.5 z-10 scale-75 sm:scale-80 md:scale-90 lg:scale-95">
               {Array.from({ length: cardCount }).map((_, i) => {
                 const centerIdx = (cardCount - 1) / 2;
                 const norm = i - centerIdx;
@@ -205,7 +213,12 @@ export const PlayerSeat = React.memo<PlayerSeatProps>(({
                     }}
                     className="transform origin-center transition-transform"
                   >
-                    <CardBack width={32} height={46} />
+                    <div className="sm:block md:hidden">
+                      <CardBack width={26} height={38} />
+                    </div>
+                    <div className="hidden md:block">
+                      <CardBack width={32} height={46} />
+                    </div>
                   </div>
                 );
               })}

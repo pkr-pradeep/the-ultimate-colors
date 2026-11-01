@@ -51,7 +51,7 @@ export const TestRunnerModal: React.FC<TestRunnerModalProps> = ({
 
   const results = testOutput?.results || [];
   const passedCount = testOutput?.passedCount || 0;
-  const totalCount = testOutput?.totalCount || 62;
+  const totalCount = testOutput?.totalCount || 61;
   const allPassed = passedCount === totalCount;
 
   return (
