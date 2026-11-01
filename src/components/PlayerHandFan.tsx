@@ -83,34 +83,47 @@ export const PlayerHandFan: React.FC<PlayerHandFanProps> = ({
   const n = sortedCards.length;
   const center = (n - 1) / 2;
 
-  // Consistent card sizing across hand so cards never pop or jump when cards are played
-  const cardSize = isMobile ? 'xs' : isTablet || isBidding ? 'sm' : 'md';
-  const cardWidthPx = isMobile ? 68 : isTablet || isBidding ? 84 : 108;
+  // Responsive card sizing tailored to fit perfectly on phones, portrait tablets, and desktops
+  const cardSize = isMobile
+    ? 'xs'
+    : isTablet
+    ? (windowWidth < 820 || isBidding ? 'xs' : 'sm')
+    : isBidding
+    ? 'sm'
+    : 'md';
+
+  const cardWidthPx = cardSize === 'xs' ? 68 : cardSize === 'sm' ? 80 : 96;
 
   // Maximum width available on screen for the fan (guarantees zero screen overflow)
   const maxFanWidth = isMobile
-    ? Math.min(windowWidth - 20, 350)
+    ? Math.min(windowWidth - 16, 380)
     : isTablet
-    ? Math.min(windowWidth - 48, 680)
-    : Math.min(windowWidth - 64, 880);
+    ? Math.min(windowWidth - 32, 700)
+    : Math.min(windowWidth - 48, 860);
 
-  // Exact mathematically bounded overlap: guarantees fan never exceeds maxFanWidth!
+  // Buffer to account for outer card rotational flare
+  const rotationAllowance = isMobile ? 12 : isTablet ? 22 : 30;
+  const effectiveAvailableWidth = Math.max(260, maxFanWidth - rotationAllowance);
+
+  // Exact mathematically bounded overlap: guarantees fan never exceeds effectiveAvailableWidth!
   const overlapPx = useMemo(() => {
     if (n <= 1) return 0;
-    const maxAllowedStep = (maxFanWidth - cardWidthPx) / (n - 1);
-    const desiredStep = isMobile
-      ? Math.min(32, Math.max(20, maxAllowedStep))
-      : isTablet
-      ? Math.min(48, Math.max(28, maxAllowedStep))
-      : Math.min(60, Math.max(34, maxAllowedStep));
+    const maxAllowedStep = (effectiveAvailableWidth - cardWidthPx) / (n - 1);
+    const targetStep = isMobile ? 24 : isTablet ? (windowWidth < 820 ? 30 : 36) : 44;
+    // Step must never exceed maxAllowedStep, guaranteeing total fan width <= effectiveAvailableWidth
+    const step = Math.min(targetStep, Math.max(16, maxAllowedStep));
 
-    return Math.max(0, Math.round(cardWidthPx - desiredStep));
-  }, [n, maxFanWidth, cardWidthPx, isMobile, isTablet]);
+    return Math.max(0, Math.round(cardWidthPx - step));
+  }, [n, effectiveAvailableWidth, cardWidthPx, isMobile, isTablet, windowWidth]);
 
   // Controlled, gentle fan rotation that stays strictly within screen margins
-  const maxTotalSpreadAngle = isMobile ? Math.min(13, n * 1.6) : Math.min(22, n * 2.4);
+  const maxTotalSpreadAngle = isMobile
+    ? Math.min(10, n * 1.3)
+    : isTablet
+    ? Math.min(14, n * 1.4)
+    : Math.min(18, n * 1.8);
   const angleStep = n > 1 ? (2 * maxTotalSpreadAngle) / (n - 1) : 0;
-  const yMultiplier = isMobile ? 0.65 : 1.1;
+  const yMultiplier = isMobile ? 0.6 : isTablet ? 0.75 : 0.95;
 
   // Fast, memoized card click handler ensuring 60+ FPS without re-allocating
   const handleCardClick = useCallback((card: Card) => {
@@ -211,8 +224,8 @@ export const PlayerHandFan: React.FC<PlayerHandFanProps> = ({
       <div
         className={`relative ${
           isBidding
-            ? 'h-20 sm:h-24 md:h-28'
-            : 'h-24 sm:h-28 md:h-34'
+            ? 'h-17 sm:h-20 md:h-24'
+            : 'h-20 sm:h-24 md:h-28'
         } w-full flex items-end justify-center px-2 pb-0.5 overflow-x-clip`}
       >
         {sortedCards.map((card, index) => {

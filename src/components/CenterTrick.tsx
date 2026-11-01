@@ -20,20 +20,20 @@ const ROUND_OFFSETS: Record<
   }
 > = {
   north: {
-    mobile: { x: 0, y: -44, rotate: 0 },
-    desktop: { x: 0, y: -62, rotate: 0 },
+    mobile: { x: 0, y: -42, rotate: 0 },
+    desktop: { x: 0, y: -54, rotate: 0 },
   },
   south: {
-    mobile: { x: 0, y: 44, rotate: 0 },
-    desktop: { x: 0, y: 62, rotate: 0 },
+    mobile: { x: 0, y: 42, rotate: 0 },
+    desktop: { x: 0, y: 54, rotate: 0 },
   },
   west: {
-    mobile: { x: -48, y: 0, rotate: 0 },
-    desktop: { x: -70, y: 0, rotate: 0 },
+    mobile: { x: -44, y: 0, rotate: 0 },
+    desktop: { x: -58, y: 0, rotate: 0 },
   },
   east: {
-    mobile: { x: 48, y: 0, rotate: 0 },
-    desktop: { x: 70, y: 0, rotate: 0 },
+    mobile: { x: 44, y: 0, rotate: 0 },
+    desktop: { x: 58, y: 0, rotate: 0 },
   },
 };
 
@@ -46,11 +46,11 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
   const leadCard = currentTrick.length > 0 ? currentTrick[0].card : null;
 
   return (
-    <div className="relative w-72 h-48 sm:w-110 sm:h-64 flex items-center justify-center select-none">
+    <div className="relative w-68 h-42 sm:w-84 sm:h-48 md:w-96 md:h-54 lg:w-104 lg:h-58 flex items-center justify-center select-none">
       {/* ================= ROUND FELT ARENA (CARDS FALL IN THIS ROUND) ================= */}
-      <div className="absolute w-44 h-44 sm:w-64 sm:h-64 rounded-full border-2 border-amber-600/35 bg-[radial-gradient(circle_at_center,rgba(217,119,6,0.14)_0%,rgba(146,64,14,0.05)_60%,transparent_85%)] pointer-events-none shadow-[inset_0_0_24px_rgba(10,5,2,0.85)] flex items-center justify-center">
+      <div className="absolute w-44 h-44 sm:w-52 sm:h-52 md:w-60 md:h-60 rounded-full border-2 border-amber-600/35 bg-[radial-gradient(circle_at_center,rgba(217,119,6,0.14)_0%,rgba(146,64,14,0.05)_60%,transparent_85%)] pointer-events-none shadow-[inset_0_0_24px_rgba(10,5,2,0.85)] flex items-center justify-center">
         {/* Subtle decorative inner compass ring */}
-        <div className="w-32 h-32 sm:w-48 sm:h-48 rounded-full border border-amber-500/20 pointer-events-none" />
+        <div className="w-32 h-32 sm:w-38 sm:h-38 md:w-46 md:h-46 rounded-full border border-amber-500/20 pointer-events-none" />
 
         {/* Empty Trick subtle cue */}
         {currentTrick.length === 0 && (
@@ -185,12 +185,22 @@ export const CenterTrick: React.FC<CenterTrickProps> = ({
                     isWinner ? 'scale-105 ring-2 ring-amber-400 rounded-xl shadow-xl' : ''
                   }`}
                 >
-                  <CardView
-                    card={play.card}
-                    size="md"
-                    isLegal={false}
-                    isTrump={isTrump}
-                  />
+                  <div className="sm:block lg:hidden">
+                    <CardView
+                      card={play.card}
+                      size="sm"
+                      isLegal={false}
+                      isTrump={isTrump}
+                    />
+                  </div>
+                  <div className="hidden lg:block">
+                    <CardView
+                      card={play.card}
+                      size="md"
+                      isLegal={false}
+                      isTrump={isTrump}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

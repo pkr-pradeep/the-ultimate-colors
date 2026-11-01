@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, GameSettings, MatchConfig, Partnership, PlayerId, Suit, TeamId } from '../types/game';
 import { SuitIcon } from './art/SuitIcon';
 import { SUIT_NAMES, MULTILINGUAL_SUIT_NAMES } from '../engine/deck';
-import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X, HelpCircle, Download, ChevronDown } from 'lucide-react';
+import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X, HelpCircle, ChevronDown } from 'lucide-react';
 
 interface TableControlsProps {
   handNumber: number;
@@ -27,7 +27,6 @@ interface TableControlsProps {
   onInspectTrump: () => void;
   onOpenTactics?: () => void;
   onOpenWalkthrough?: () => void;
-  onOpenDownloadApk?: () => void;
 }
 
 export const TableControls = React.memo<TableControlsProps>(({
@@ -52,7 +51,6 @@ export const TableControls = React.memo<TableControlsProps>(({
   onInspectTrump,
   onOpenTactics,
   onOpenWalkthrough,
-  onOpenDownloadApk,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
@@ -230,19 +228,6 @@ export const TableControls = React.memo<TableControlsProps>(({
             <span className="hidden md:inline font-bold">Rules</span>
           </button>
 
-          {/* Download APK / Install Mobile App Button */}
-          {onOpenDownloadApk && (
-            <button
-              type="button"
-              onClick={onOpenDownloadApk}
-              title="Download APK & Install Mobile App (English, Hindi, Odia)"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600/30 to-amber-700/40 hover:from-amber-600/50 hover:to-amber-700/60 text-amber-200 border border-amber-500/70 shadow-sm transition-all text-xs font-cinzel font-bold cursor-pointer"
-            >
-              <Download size={14} className="text-amber-300 animate-pulse" />
-              <span className="hidden sm:inline">APK</span>
-            </button>
-          )}
-
           {/* Sound Toggle */}
           <button
             type="button"
@@ -376,7 +361,7 @@ export const TableControls = React.memo<TableControlsProps>(({
                     </div>
                   </div>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600/50 font-bold">
-                    62 / 62
+                    61 / 61
                   </span>
                 </button>
 
@@ -438,19 +423,6 @@ export const TableControls = React.memo<TableControlsProps>(({
             >
               <BookOpen size={14} />
             </button>
-
-            {/* Download APK / Mobile App */}
-            {onOpenDownloadApk && (
-              <button
-                type="button"
-                onClick={onOpenDownloadApk}
-                aria-label="Download APK & Install App"
-                title="Download APK / Install Mobile App"
-                className="p-1.5 min-w-[34px] min-h-[34px] rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/60 flex items-center justify-center cursor-pointer touch-manipulation shadow-sm"
-              >
-                <Download size={14} className="text-amber-300" />
-              </button>
-            )}
 
             {/* Sound */}
             <button
@@ -542,7 +514,7 @@ export const TableControls = React.memo<TableControlsProps>(({
               className="px-2.5 py-1.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-600/50 flex items-center gap-1 text-[11px] cursor-pointer"
             >
               <CheckCheck size={13} />
-              <span>Tests (62)</span>
+              <span>Tests (61)</span>
             </button>
 
             <button
@@ -568,20 +540,6 @@ export const TableControls = React.memo<TableControlsProps>(({
               >
                 <HelpCircle size={13} />
                 <span>Demo Tour</span>
-              </button>
-            )}
-
-            {onOpenDownloadApk && (
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onOpenDownloadApk();
-                }}
-                className="px-2.5 py-1.5 rounded-lg bg-amber-950/80 text-amber-200 border border-amber-500/60 flex items-center gap-1 text-[11px] cursor-pointer font-bold"
-              >
-                <Download size={13} className="text-amber-300" />
-                <span>APK / Mobile App</span>
               </button>
             )}
 

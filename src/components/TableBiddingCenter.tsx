@@ -53,9 +53,9 @@ export const TableBiddingCenter = React.memo<TableBiddingCenterProps>(({
   const isCombinedValid = partnerBid === null || estimatedCombinedBid >= 2;
 
   return (
-    <div className="relative w-full max-w-xl mx-auto my-auto animate-fade-in select-none">
+    <div className="relative w-full max-w-md sm:max-w-lg lg:max-w-xl mx-auto my-auto animate-fade-in select-none">
       {/* Tabletop Wooden Felt Mat Container - guaranteed to fit within tablet & mobile landscape */}
-      <div className="relative bg-gradient-to-b from-[#2B150C]/95 via-[#1C0D07]/95 to-[#120703]/95 border-2 border-amber-600/70 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.85)] backdrop-blur-md max-h-[min(370px,calc(100dvh-200px))] sm:max-h-[min(400px,calc(100dvh-220px))] overflow-y-auto">
+      <div className="relative bg-gradient-to-b from-[#2B150C]/95 via-[#1C0D07]/95 to-[#120703]/95 border-2 border-amber-600/70 rounded-xl sm:rounded-2xl p-2 sm:p-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.85)] backdrop-blur-md max-h-[min(340px,calc(100dvh-200px))] sm:max-h-[min(380px,calc(100dvh-220px))] overflow-y-auto">
         {/* Ornate Gold Filigree Corners */}
         <div className="absolute top-1 left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-amber-400/80 rounded-tl pointer-events-none" />
         <div className="absolute top-1 right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-amber-400/80 rounded-tr pointer-events-none" />

@@ -27,13 +27,13 @@ export const CardView = React.memo<CardViewProps>(({
   className = '',
   style,
 }) => {
-  // Generously enlarged proportional dimensions for maximum readability on mobile devices
+  // Proportional dimensions optimized for mobile, tablet, and desktop viewports
   const sizeMap = {
-    xs: 'w-17 sm:w-20 aspect-[5/7]',
-    sm: 'w-21 sm:w-25 aspect-[5/7]',
-    md: 'w-27 sm:w-32 aspect-[5/7]',
-    lg: 'w-36 sm:w-42 aspect-[5/7]',
-    xl: 'w-52 sm:w-64 aspect-[5/7]',
+    xs: 'w-16 sm:w-17 md:w-18 aspect-[5/7]',
+    sm: 'w-18 sm:w-20 md:w-22 aspect-[5/7]',
+    md: 'w-22 sm:w-24 md:w-26 lg:w-28 aspect-[5/7]',
+    lg: 'w-28 sm:w-32 md:w-36 aspect-[5/7]',
+    xl: 'w-40 sm:w-48 md:w-56 aspect-[5/7]',
   };
 
   if (!isFaceUp) {
