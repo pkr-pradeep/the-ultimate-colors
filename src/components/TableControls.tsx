@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, GameSettings, MatchConfig, Partnership, PlayerId, Suit, TeamId } from '../types/game';
 import { SuitIcon } from './art/SuitIcon';
 import { SUIT_NAMES, MULTILINGUAL_SUIT_NAMES } from '../engine/deck';
-import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X, HelpCircle } from 'lucide-react';
+import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X, HelpCircle, Download, ChevronDown } from 'lucide-react';
 
 interface TableControlsProps {
   handNumber: number;
@@ -27,6 +27,7 @@ interface TableControlsProps {
   onInspectTrump: () => void;
   onOpenTactics?: () => void;
   onOpenWalkthrough?: () => void;
+  onOpenDownloadApk?: () => void;
 }
 
 export const TableControls = React.memo<TableControlsProps>(({
@@ -51,8 +52,32 @@ export const TableControls = React.memo<TableControlsProps>(({
   onInspectTrump,
   onOpenTactics,
   onOpenWalkthrough,
+  onOpenDownloadApk,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
+  const desktopMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close desktop options menu when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!isDesktopMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (desktopMenuRef.current && !desktopMenuRef.current.contains(e.target as Node)) {
+        setIsDesktopMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDesktopMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDesktopMenuOpen]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -63,19 +88,19 @@ export const TableControls = React.memo<TableControlsProps>(({
   return (
     <header className="w-full max-w-6xl mx-auto px-2 sm:px-4 pt-1.5 sm:pt-2.5 pb-1 flex flex-col gap-1.5 sm:gap-2 z-30 select-none flex-shrink-0">
       {/* ================= DESKTOP & TABLET TOP BAR (>= 640px) ================= */}
-      <div className="hidden sm:flex items-center justify-between gap-1.5 md:gap-2 flex-nowrap w-full">
-        {/* Brand, Hand Number, Dealer */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-700 border border-amber-200 flex items-center justify-center shadow-md">
-            <span className="text-xs sm:text-sm">🃏</span>
+      <div className="hidden sm:flex items-center justify-between gap-2 md:gap-3 flex-nowrap w-full">
+        {/* LEFT: Royal Brand Crest, Hand Counter, Dealer Meta */}
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 via-amber-600 to-amber-800 border border-amber-300/80 flex items-center justify-center shadow-md flex-shrink-0">
+            <span className="text-sm">🃏</span>
           </div>
-          <div>
-            <h1 className="font-cinzel text-xs sm:text-sm md:text-base font-black text-amber-200 tracking-wider">
+          <div className="leading-tight">
+            <h1 className="font-cinzel text-xs sm:text-sm lg:text-base font-black text-amber-100 tracking-wider">
               The Universal Joker
             </h1>
             <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-400/80 font-outfit">
-              <span>Hand {handNumber}</span>
-              <span>·</span>
+              <span className="font-semibold text-amber-300">Hand {handNumber}</span>
+              <span className="text-amber-600">·</span>
               <span className="flex items-center gap-1">
                 Dealer: <strong className="text-amber-200">{dealerName}</strong>
                 <span className="text-amber-400 text-xs" title="Rotates Counter-Clockwise">↺</span>
@@ -84,42 +109,32 @@ export const TableControls = React.memo<TableControlsProps>(({
           </div>
         </div>
 
-        {/* Center: Team Scores & Mode Target */}
-        <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap min-w-0">
-          {/* Team 1 & Team 2 Live Match Points */}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-xl bg-neutral-900/90 border border-amber-700/50 shadow-md text-[11px] sm:text-xs font-outfit flex-shrink-0">
+        {/* CENTER: Unified Royal Table HUD Console (Scores, Trump, Target, Trick) */}
+        <div className="flex items-center gap-2 md:gap-3 px-3 py-1.5 rounded-2xl bg-neutral-950/85 border border-amber-600/50 shadow-xl backdrop-blur-md flex-shrink-0 min-w-0">
+          {/* Live Match Scoreboard Trigger */}
+          <button
+            type="button"
+            onClick={onOpenScoreboard}
+            title="Click to view detailed Scoreboard & Match History"
+            className="flex items-center gap-1.5 text-xs font-outfit text-amber-200 hover:text-white transition-colors cursor-pointer group flex-shrink-0"
+          >
             <div className="flex items-center gap-1">
-              <span className="text-amber-400/80 text-[9px] sm:text-[10px] font-cinzel">Team 1:</span>
-              <span className="font-mono font-bold text-amber-200">{partnerships.team1.matchScore}</span>
+              <span className="text-[10px] text-amber-400/90 font-cinzel font-semibold group-hover:text-amber-300">T1:</span>
+              <strong className="font-mono text-amber-100 font-black">{partnerships.team1.matchScore}</strong>
             </div>
-            <span className="text-amber-600">vs</span>
+            <span className="text-amber-600 text-[10px] font-bold">vs</span>
             <div className="flex items-center gap-1">
-              <span className="text-amber-400/80 text-[9px] sm:text-[10px] font-cinzel">Team 2:</span>
-              <span className="font-mono font-bold text-amber-200">{partnerships.team2.matchScore}</span>
+              <span className="text-[10px] text-amber-400/90 font-cinzel font-semibold group-hover:text-amber-300">T2:</span>
+              <strong className="font-mono text-amber-100 font-black">{partnerships.team2.matchScore}</strong>
             </div>
-          </div>
+          </button>
 
-          {/* Match Mode Target or Timer */}
-          {matchConfig.mode === 'time' && timeRemainingSeconds !== null ? (
-            <div
-              className={`flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-xl border text-[11px] sm:text-xs font-mono font-bold shadow-md flex-shrink-0 ${
-                isTimeExpired
-                  ? 'bg-rose-950/80 border-rose-500 text-rose-300 animate-pulse'
-                  : 'bg-neutral-900/90 border-amber-600/50 text-amber-300'
-              }`}
-            >
-              <Clock size={12} />
-              <span>{isTimeExpired ? 'Finishing Hand' : formatTime(timeRemainingSeconds)}</span>
-            </div>
-          ) : (
-            <div className="px-2 py-0.5 sm:py-1 rounded-xl bg-neutral-900/90 border border-amber-800/40 text-[10px] sm:text-[11px] font-cinzel text-amber-300/90 shadow-md flex-shrink-0">
-              Target: <strong className="text-amber-200 font-mono">{matchConfig.mode === 'default_points' ? 100 : matchConfig.targetPoints} pts</strong>
-            </div>
-          )}
+          {/* Vertical Divider */}
+          <div className="h-4 w-[1px] bg-amber-700/50 flex-shrink-0" />
 
-          {/* Trump Indicator Box */}
+          {/* Trump Card & Suit Indicator (Clickable to inspect 13th card) */}
           {isJokerRevealHand ? (
-            <div className="flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-xl bg-red-950/90 border border-amber-500/60 shadow-md text-[11px] sm:text-xs font-cinzel text-amber-200 font-bold flex-shrink-0">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-red-950/90 border border-amber-500/60 text-[11px] font-cinzel text-amber-200 font-bold flex-shrink-0">
               <span>★ No Trump</span>
             </div>
           ) : trumpSuit ? (
@@ -127,82 +142,81 @@ export const TableControls = React.memo<TableControlsProps>(({
               type="button"
               onClick={onInspectTrump}
               title="Click to inspect 13th final dealt trump card"
-              className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-xl bg-neutral-900/90 hover:bg-neutral-800/90 border border-amber-600/60 shadow-md cursor-pointer transition-all hover:border-amber-400 flex-shrink-0"
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-950/50 hover:bg-amber-900/60 border border-amber-600/50 hover:border-amber-400 shadow-sm transition-all cursor-pointer flex-shrink-0"
             >
-              <span className="text-[9px] sm:text-[10px] font-cinzel text-amber-300 uppercase tracking-wider hidden md:inline">
+              <span className="text-[10px] font-cinzel text-amber-300 uppercase tracking-wider hidden lg:inline">
                 Trump:
               </span>
-              <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-100 font-cinzel">
-                <SuitIcon suit={trumpSuit} size={15} showGoldBorder />
+              <div className="flex items-center gap-1 text-xs font-bold text-amber-100 font-cinzel">
+                <SuitIcon suit={trumpSuit} size={14} showGoldBorder />
                 <span>{SUIT_NAMES[trumpSuit]}</span>
-                <span className="text-[10px] text-amber-300/80 font-normal font-sans hidden lg:inline">
-                  ({MULTILINGUAL_SUIT_NAMES[trumpSuit].or} / {MULTILINGUAL_SUIT_NAMES[trumpSuit].hi})
-                </span>
               </div>
               {trumpCard && (
-                <span className="text-[9px] font-mono text-amber-400 bg-amber-950/90 px-1 py-0.2 rounded border border-amber-700/50">
+                <span className="text-[9px] font-mono text-amber-300 bg-amber-950/90 px-1 py-0.2 rounded border border-amber-600/50 font-bold">
                   {trumpCard.shortName}
                 </span>
               )}
             </button>
           ) : (
-            <div className="px-2 py-0.5 sm:py-1 rounded-xl bg-neutral-900/80 border border-amber-800/40 text-[9px] sm:text-[10px] text-amber-300 font-cinzel flex-shrink-0">
+            <div className="text-[10px] font-cinzel text-amber-400/70 italic flex-shrink-0">
               Dealing...
             </div>
           )}
 
-          {/* Trick Counter Badge */}
-          <div className="px-2 py-0.5 sm:py-1 rounded-xl bg-neutral-900/90 border border-amber-700/50 shadow-md flex items-center gap-1 text-[11px] sm:text-xs text-amber-200 font-cinzel font-bold flex-shrink-0">
-            <span className="text-[9px] text-amber-400/80 font-normal hidden sm:inline">Trick:</span>
-            <span className="text-amber-100 font-mono">{trickNumber}/13</span>
+          {/* Vertical Divider */}
+          <div className="h-4 w-[1px] bg-amber-700/50 flex-shrink-0" />
+
+          {/* Match Target or Live Timer */}
+          {matchConfig.mode === 'time' && timeRemainingSeconds !== null ? (
+            <div
+              className={`flex items-center gap-1 text-xs font-mono font-bold flex-shrink-0 ${
+                isTimeExpired ? 'text-rose-400 animate-pulse' : 'text-amber-300'
+              }`}
+              title={isTimeExpired ? 'Finishing current hand before declaring match winner' : 'Match time remaining'}
+            >
+              <Clock size={12} />
+              <span>{isTimeExpired ? 'Finishing' : formatTime(timeRemainingSeconds)}</span>
+            </div>
+          ) : (
+            <div className="text-[11px] font-cinzel text-amber-300/90 flex-shrink-0 whitespace-nowrap">
+              Target: <strong className="text-amber-100 font-mono font-bold">{matchConfig.mode === 'default_points' ? 100 : matchConfig.targetPoints}</strong>
+            </div>
+          )}
+
+          {/* Vertical Divider */}
+          <div className="h-4 w-[1px] bg-amber-700/50 flex-shrink-0" />
+
+          {/* Live Trick Number */}
+          <div className="flex items-center gap-1 text-xs font-cinzel font-bold text-amber-200 flex-shrink-0 whitespace-nowrap">
+            <span className="text-[10px] text-amber-400/80 font-normal hidden md:inline">Trick:</span>
+            <span className="font-mono text-amber-100 font-black">{trickNumber}/13</span>
           </div>
         </div>
 
-        {/* Right: Action Buttons */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          {/* Intelligence Mode Selector Pill */}
-          <button
-            type="button"
-            onClick={onOpenTactics}
-            title={`Current AI Mode: ${settings.intelligenceMode || 'legend'} (Click to view Tactics Guide)`}
-            className="flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-lg bg-neutral-900/90 border border-amber-500/60 hover:border-amber-400 text-amber-200 text-[10px] sm:text-[11px] font-cinzel font-bold shadow-sm transition-all cursor-pointer"
-          >
-            <span>
-              {settings.intelligenceMode === 'novice' ? '🌱' : settings.intelligenceMode === 'master' ? '⚔️' : '👑'}
-            </span>
-            <span className="capitalize hidden md:inline">{settings.intelligenceMode || 'legend'}</span>
-          </button>
-
-          {/* Test Engine Verification Button */}
-          <button
-            type="button"
-            onClick={onOpenTestRunner}
-            title="Inspect 52 Automated Game Engine Tests"
-            className="p-1 sm:px-2 sm:py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/50 shadow-sm transition-colors flex items-center gap-1 text-[11px] font-cinzel cursor-pointer"
-          >
-            <CheckCheck size={13} />
-            <span className="hidden md:inline">Tests (52)</span>
-          </button>
-
-          {/* Match Mode Settings Button */}
-          <button
-            type="button"
-            onClick={onOpenMatchConfig}
-            title="Configure Match Mode (Points / Time)"
-            className="p-1 sm:p-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors cursor-pointer"
-          >
-            <Settings size={13} />
-          </button>
+        {/* RIGHT: Streamlined Action Bar & Royal Options Menu */}
+        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+          {/* AI Difficulty Pill (Visible on wide screens) */}
+          {onOpenTactics && (
+            <button
+              type="button"
+              onClick={onOpenTactics}
+              title={`Current AI Mode: ${settings.intelligenceMode || 'legend'} (Click to view Tactics Guide)`}
+              className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-amber-200 border border-amber-700/50 hover:border-amber-400 shadow-sm transition-all text-xs font-cinzel cursor-pointer"
+            >
+              <span>{settings.intelligenceMode === 'novice' ? '🌱' : settings.intelligenceMode === 'master' ? '⚔️' : '👑'}</span>
+              <span className="capitalize font-bold">{settings.intelligenceMode || 'legend'}</span>
+            </button>
+          )}
 
           {/* Scoreboard Button */}
           <button
             type="button"
             onClick={onOpenScoreboard}
             title="View Scores & Standings"
-            className="p-1 sm:px-2 sm:py-1 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors flex items-center gap-1 text-[11px] font-cinzel cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-amber-200 border border-amber-700/50 hover:border-amber-400 shadow-sm transition-all text-xs font-cinzel cursor-pointer"
           >
-            <Trophy size={13} />
-            <span className="hidden md:inline">Score</span>
+            <Trophy size={14} className="text-amber-400" />
+            <span className="hidden md:inline font-bold">Scores</span>
           </button>
 
           {/* Rules / Playbook Button */}
@@ -210,22 +224,22 @@ export const TableControls = React.memo<TableControlsProps>(({
             type="button"
             onClick={onOpenRules}
             title="Read Official Playbook (English, Hindi, Odia)"
-            className="p-1 sm:px-2 sm:py-1 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors flex items-center gap-1 text-[11px] font-cinzel cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-amber-200 border border-amber-700/50 hover:border-amber-400 shadow-sm transition-all text-xs font-cinzel cursor-pointer"
           >
-            <BookOpen size={13} />
-            <span className="hidden md:inline">Rules</span>
+            <BookOpen size={14} className="text-amber-400" />
+            <span className="hidden md:inline font-bold">Rules</span>
           </button>
 
-          {/* Interactive Walkthrough Tour Button */}
-          {onOpenWalkthrough && (
+          {/* Download APK / Install Mobile App Button */}
+          {onOpenDownloadApk && (
             <button
               type="button"
-              onClick={onOpenWalkthrough}
-              title="Interactive Game Walkthrough Demo"
-              className="p-1 sm:px-2 sm:py-1 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors flex items-center gap-1 text-[11px] font-cinzel cursor-pointer"
+              onClick={onOpenDownloadApk}
+              title="Download APK & Install Mobile App (English, Hindi, Odia)"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-600/30 to-amber-700/40 hover:from-amber-600/50 hover:to-amber-700/60 text-amber-200 border border-amber-500/70 shadow-sm transition-all text-xs font-cinzel font-bold cursor-pointer"
             >
-              <HelpCircle size={13} />
-              <span className="hidden md:inline">Tour</span>
+              <Download size={14} className="text-amber-300 animate-pulse" />
+              <span className="hidden sm:inline">APK</span>
             </button>
           )}
 
@@ -234,20 +248,156 @@ export const TableControls = React.memo<TableControlsProps>(({
             type="button"
             onClick={onToggleSound}
             title={settings.soundEnabled ? 'Mute Sounds' : 'Unmute Sounds'}
-            className="p-1 sm:p-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-700/50 hover:border-amber-400 shadow-sm transition-all cursor-pointer"
           >
-            {settings.soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+            {settings.soundEnabled ? <Volume2 size={14} /> : <VolumeX size={14} />}
           </button>
 
-          {/* Reset / Redeal Hand */}
-          <button
-            type="button"
-            onClick={onRestartHand}
-            title="Redeal Current Hand"
-            className="p-1 sm:p-1.5 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 hover:border-amber-500 shadow-sm transition-colors cursor-pointer"
-          >
-            <RotateCcw size={13} />
-          </button>
+          {/* Royal Options Dropdown (Consolidating secondary controls) */}
+          <div className="relative" ref={desktopMenuRef}>
+            <button
+              type="button"
+              onClick={() => setIsDesktopMenuOpen(prev => !prev)}
+              title="Match Settings, AI Tactics, Tour & Tools"
+              aria-expanded={isDesktopMenuOpen}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border shadow-sm transition-all text-xs font-cinzel font-bold cursor-pointer ${
+                isDesktopMenuOpen
+                  ? 'bg-amber-600/30 text-amber-100 border-amber-400 ring-1 ring-amber-400/50'
+                  : 'bg-neutral-900/80 hover:bg-neutral-800 text-amber-200 border border-amber-700/50 hover:border-amber-400'
+              }`}
+            >
+              <Settings size={14} className={`text-amber-400 transition-transform duration-300 ${isDesktopMenuOpen ? 'rotate-90' : ''}`} />
+              <span className="hidden md:inline">Options</span>
+              <ChevronDown size={12} className={`text-amber-400 transition-transform duration-200 ${isDesktopMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Desktop Floating Options Panel */}
+            {isDesktopMenuOpen && (
+              <div className="absolute right-0 top-full mt-2 w-64 bg-[#1f0e08]/95 border-2 border-amber-500/60 rounded-2xl p-2 shadow-2xl backdrop-blur-md z-50 text-amber-100 flex flex-col gap-1 animate-fade-in font-outfit">
+                {/* AI Intelligence Mode item */}
+                {onOpenTactics && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDesktopMenuOpen(false);
+                      onOpenTactics();
+                    }}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-amber-900/40 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">
+                        {settings.intelligenceMode === 'novice' ? '🌱' : settings.intelligenceMode === 'master' ? '⚔️' : '👑'}
+                      </span>
+                      <div>
+                        <span className="text-xs font-cinzel font-bold text-amber-200 block group-hover:text-amber-100">
+                          AI Difficulty
+                        </span>
+                        <span className="text-[10px] text-amber-400/70 block">
+                          Tactics & risk guide
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-amber-950 border border-amber-600/50 text-amber-300 font-bold">
+                      {settings.intelligenceMode || 'legend'}
+                    </span>
+                  </button>
+                )}
+
+                {/* Match Mode Settings */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDesktopMenuOpen(false);
+                    onOpenMatchConfig();
+                  }}
+                  className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-amber-900/40 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2">
+                    <Settings size={15} className="text-amber-400" />
+                    <div>
+                      <span className="text-xs font-cinzel font-bold text-amber-200 block group-hover:text-amber-100">
+                        Match Mode
+                      </span>
+                      <span className="text-[10px] text-amber-400/70 block">
+                        Target points or timer
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-amber-300/90 font-bold px-2 py-0.5 rounded-full bg-neutral-900 border border-amber-700/50">
+                    {matchConfig.mode === 'time' ? 'Time Mode' : `${matchConfig.targetPoints} pts`}
+                  </span>
+                </button>
+
+                {/* Interactive Walkthrough Demo Tour */}
+                {onOpenWalkthrough && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDesktopMenuOpen(false);
+                      onOpenWalkthrough();
+                    }}
+                    className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-amber-900/40 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <HelpCircle size={15} className="text-amber-400" />
+                      <div>
+                        <span className="text-xs font-cinzel font-bold text-amber-200 block group-hover:text-amber-100">
+                          Demo Walkthrough
+                        </span>
+                        <span className="text-[10px] text-amber-400/70 block">
+                          Interactive rules tour
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-cinzel text-amber-400/80 px-2 py-0.5 rounded-full bg-neutral-900 border border-amber-700/50">
+                      Tour
+                    </span>
+                  </button>
+                )}
+
+                {/* Engine Tests Verification Modal */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDesktopMenuOpen(false);
+                    onOpenTestRunner();
+                  }}
+                  className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-emerald-950/40 text-left transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCheck size={15} className="text-emerald-400" />
+                    <div>
+                      <span className="text-xs font-cinzel font-bold text-emerald-300 block group-hover:text-emerald-200">
+                        Engine Tests
+                      </span>
+                      <span className="text-[10px] text-emerald-400/70 block">
+                        Automated rulebook tests
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-600/50 font-bold">
+                    62 / 62
+                  </span>
+                </button>
+
+                {/* Divider */}
+                <div className="h-[1px] bg-amber-800/40 my-1" />
+
+                {/* Redeal Current Hand */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDesktopMenuOpen(false);
+                    onRestartHand();
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-rose-950/50 text-amber-300 hover:text-rose-200 text-left transition-colors text-xs font-cinzel cursor-pointer"
+                >
+                  <RotateCcw size={14} className="text-amber-400" />
+                  <span className="font-bold">Redeal Current Hand</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -288,6 +438,19 @@ export const TableControls = React.memo<TableControlsProps>(({
             >
               <BookOpen size={14} />
             </button>
+
+            {/* Download APK / Mobile App */}
+            {onOpenDownloadApk && (
+              <button
+                type="button"
+                onClick={onOpenDownloadApk}
+                aria-label="Download APK & Install App"
+                title="Download APK / Install Mobile App"
+                className="p-1.5 min-w-[34px] min-h-[34px] rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/60 flex items-center justify-center cursor-pointer touch-manipulation shadow-sm"
+              >
+                <Download size={14} className="text-amber-300" />
+              </button>
+            )}
 
             {/* Sound */}
             <button
@@ -379,7 +542,7 @@ export const TableControls = React.memo<TableControlsProps>(({
               className="px-2.5 py-1.5 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-600/50 flex items-center gap-1 text-[11px] cursor-pointer"
             >
               <CheckCheck size={13} />
-              <span>Tests (59)</span>
+              <span>Tests (62)</span>
             </button>
 
             <button
@@ -408,6 +571,20 @@ export const TableControls = React.memo<TableControlsProps>(({
               </button>
             )}
 
+            {onOpenDownloadApk && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onOpenDownloadApk();
+                }}
+                className="px-2.5 py-1.5 rounded-lg bg-amber-950/80 text-amber-200 border border-amber-500/60 flex items-center gap-1 text-[11px] cursor-pointer font-bold"
+              >
+                <Download size={13} className="text-amber-300" />
+                <span>APK / Mobile App</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => {
@@ -432,7 +609,7 @@ export const TableControls = React.memo<TableControlsProps>(({
       </div>
 
       {/* Status Notice Ribbon */}
-      <div className="w-full py-0.5 sm:py-1 px-2.5 sm:px-3 rounded-lg bg-gradient-to-r from-neutral-950/90 via-amber-950/70 to-neutral-950/90 border border-amber-600/30 text-center shadow-inner truncate">
+      <div className="w-full max-w-3xl mx-auto py-0.5 sm:py-1 px-3 sm:px-4 rounded-full bg-gradient-to-r from-neutral-950/40 via-amber-950/80 to-neutral-950/40 border border-amber-600/35 text-center shadow-inner truncate">
         <span className="text-[11px] sm:text-xs font-outfit text-amber-200 font-medium tracking-wide">
           {statusMessage}
         </span>

@@ -31,6 +31,7 @@ import { TestRunnerModal } from './TestRunnerModal';
 import { TacticsModal } from './TacticsModal';
 import { ShowHandModal } from './ShowHandModal';
 import { WalkthroughModal } from './WalkthroughModal';
+import { DownloadApkModal } from './DownloadApkModal';
 import { checkIsFirstTimeUser, RulebookLanguage, getSavedRulebookLanguage, saveRulebookLanguage } from '../utils/firstTimeUser';
 import { AIIntelligenceLevel } from '../types/game';
 
@@ -47,6 +48,7 @@ export const GameBoard: React.FC = () => {
   const [appLanguage, setAppLanguage] = useState<RulebookLanguage>(() => getSavedRulebookLanguage());
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isWalkthroughOpen, setIsWalkthroughOpen] = useState(false);
+  const [isDownloadApkOpen, setIsDownloadApkOpen] = useState(false);
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
   const [isTrumpInspectOpen, setIsTrumpInspectOpen] = useState(false);
   const [isMatchConfigOpen, setIsMatchConfigOpen] = useState(false);
@@ -488,6 +490,7 @@ export const GameBoard: React.FC = () => {
         onOpenTestRunner={() => setIsTestRunnerOpen(true)}
         onOpenTactics={() => setIsTacticsOpen(true)}
         onOpenWalkthrough={() => setIsWalkthroughOpen(true)}
+        onOpenDownloadApk={() => setIsDownloadApkOpen(true)}
         onRestartHand={handleRedealHand}
         onInspectTrump={() => setIsTrumpInspectOpen(true)}
       />
@@ -738,6 +741,14 @@ export const GameBoard: React.FC = () => {
         onClose={() => setIsShowHandOpen(false)}
         gameState={gameState}
         onConfirmClaim={handleConfirmClaimShowHand}
+        language={appLanguage}
+        onLanguageChange={handleAppLanguageChange}
+      />
+
+      {/* Download APK & Mobile App Modal */}
+      <DownloadApkModal
+        isOpen={isDownloadApkOpen}
+        onClose={() => setIsDownloadApkOpen(false)}
         language={appLanguage}
         onLanguageChange={handleAppLanguageChange}
       />

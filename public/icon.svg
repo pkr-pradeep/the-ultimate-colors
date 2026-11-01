@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#3d180a"/>
+      <stop offset="60%" stop-color="#1e0a05"/>
+      <stop offset="100%" stop-color="#0a0301"/>
+    </radialGradient>
+
+    <!-- Gold Metallic Gradients -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF2A3"/>
+      <stop offset="25%" stop-color="#D4AF37"/>
+      <stop offset="50%" stop-color="#FBF0B9"/>
+      <stop offset="75%" stop-color="#AA7C11"/>
+      <stop offset="100%" stop-color="#593E05"/>
+    </linearGradient>
+
+    <linearGradient id="crimsonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#991B1B"/>
+      <stop offset="100%" stop-color="#450A0A"/>
+    </linearGradient>
+
+    <!-- Filter for Glow / Drop Shadow -->
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#D4AF37" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Base Rounded Rectangle for App Icon -->
+  <rect width="512" height="512" rx="108" fill="url(#bgGrad)"/>
+
+  <!-- Ornate Outer Gold Border -->
+  <rect x="20" y="20" width="472" height="472" rx="92" fill="none" stroke="url(#goldGrad)" stroke-width="6" opacity="0.85"/>
+  <rect x="32" y="32" width="448" height="448" rx="80" fill="none" stroke="#D4AF37" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.5"/>
+
+  <!-- Central Royal Crest Circle -->
+  <circle cx="256" cy="240" r="165" fill="url(#crimsonGrad)" stroke="url(#goldGrad)" stroke-width="8" filter="url(#goldGlow)"/>
+  <circle cx="256" cy="240" r="152" fill="none" stroke="#FEF08A" stroke-width="2" opacity="0.4"/>
+
+  <!-- Corner 4 Suits -->
+  <!-- Top Left: Spades -->
+  <path d="M 68 76 C 58 64 78 52 78 52 C 78 52 98 64 88 76 C 82 84 79 88 84 94 L 72 94 C 77 88 74 84 68 76 Z" fill="#FEF08A"/>
+  <!-- Top Right: Hearts -->
+  <path d="M 434 56 C 424 46 414 56 414 56 C 414 56 404 46 394 56 C 384 68 404 88 414 94 C 424 88 444 68 434 56 Z" fill="#EF4444"/>
+  <!-- Bottom Left: Clubs -->
+  <circle cx="78" cy="425" r="7" fill="#FEF08A"/>
+  <circle cx="70" cy="436" r="7" fill="#FEF08A"/>
+  <circle cx="86" cy="436" r="7" fill="#FEF08A"/>
+  <polygon points="76,438 80,438 82,450 74,450" fill="#FEF08A"/>
+  <!-- Bottom Right: Diamonds -->
+  <polygon points="434,420 446,435 434,450 422,435" fill="#EF4444"/>
+
+  <!-- Central Royal Dadaji Crown -->
+  <g transform="translate(196, 125)">
+    <path d="M 10 70 L 25 25 L 45 48 L 60 10 L 75 48 L 95 25 L 110 70 Z" fill="url(#goldGrad)" stroke="#FFE885" stroke-width="2"/>
+    <circle cx="25" cy="20" r="5" fill="#FEF08A"/>
+    <circle cx="60" cy="5" r="7" fill="#FEF08A" stroke="#B45309" stroke-width="1.5"/>
+    <circle cx="95" cy="20" r="5" fill="#FEF08A"/>
+    <!-- Jewels on base -->
+    <rect x="10" y="65" width="100" height="12" rx="4" fill="#991B1B" stroke="url(#goldGrad)" stroke-width="2"/>
+    <circle cx="35" cy="71" r="3" fill="#38BDF8"/>
+    <circle cx="60" cy="71" r="3.5" fill="#34D399"/>
+    <circle cx="85" cy="71" r="3" fill="#38BDF8"/>
+  </g>
+
+  <!-- Iconic Joker Face / Mask / Crest Symbol -->
+  <g transform="translate(256, 260)">
+    <!-- Jester Collar / Royal Ruff -->
+    <path d="M -70 45 Q -40 20 0 35 Q 40 20 70 45 L 80 70 L 40 60 L 0 80 L -40 60 L -80 70 Z" fill="url(#goldGrad)" stroke="#78350F" stroke-width="1.5"/>
+    <circle cx="-80" cy="70" r="4" fill="#FEF08A"/>
+    <circle cx="-40" cy="60" r="4" fill="#FEF08A"/>
+    <circle cx="0" cy="80" r="5" fill="#FEF08A"/>
+    <circle cx="40" cy="60" r="4" fill="#FEF08A"/>
+    <circle cx="80" cy="70" r="4" fill="#FEF08A"/>
+
+    <!-- Central Dadaji Face Profile / Royal Joker Silhouette -->
+    <ellipse cx="0" cy="-10" rx="42" ry="48" fill="#FDF6E2" stroke="#B45309" stroke-width="3"/>
+    <!-- Tilak / Bindi -->
+    <path d="M -4 -42 Q 0 -50 4 -42 Q 0 -35 -4 -42 Z" fill="#DC2626"/>
+    <!-- Moustache (Majestic Royal Indian Moustache) -->
+    <path d="M -30 6 Q -15 0 0 10 Q 15 0 30 6 Q 36 12 34 18 Q 24 16 12 11 Q 0 15 -12 11 Q -24 16 -34 18 Q -36 12 -30 6 Z" fill="#291206"/>
+    <!-- Eyes with royal sparkle -->
+    <ellipse cx="-16" cy="-16" rx="6" ry="4" fill="#1C1917"/>
+    <ellipse cx="16" cy="-16" rx="6" ry="4" fill="#1C1917"/>
+    <circle cx="-14" cy="-17" r="1.5" fill="#FFFFFF"/>
+    <circle cx="18" cy="-17" r="1.5" fill="#FFFFFF"/>
+    <!-- Turban Pagdi Fold -->
+    <path d="M -44 -35 Q 0 -65 44 -35 Q 25 -52 -44 -35 Z" fill="#D97706" stroke="#92400E" stroke-width="2"/>
+    <circle cx="0" cy="-45" r="6" fill="#DC2626" stroke="#FEF08A" stroke-width="1.5"/>
+  </g>
+
+  <!-- Bottom Banner: UNIVERSAL JOKER -->
+  <g transform="translate(256, 435)">
+    <!-- Banner Ribbons -->
+    <path d="M -190 0 L -160 -18 L 160 -18 L 190 0 L 160 18 L -160 18 Z" fill="#1E0A05" stroke="url(#goldGrad)" stroke-width="3" filter="url(#goldGlow)"/>
+    <text x="0" y="7" text-anchor="middle" font-family="'Cinzel', Georgia, serif" font-weight="900" font-size="20" fill="url(#goldGrad)" letter-spacing="3.5">
+      UNIVERSAL JOKER
+    </text>
+  </g>
+
+  <!-- Stars of Royalty -->
+  <polygon points="256,45 259,54 268,54 261,60 263,69 256,63 249,69 251,60 244,54 253,54" fill="#FEF08A"/>
+</svg>

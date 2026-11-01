@@ -143,6 +143,33 @@ export interface TestRunnerTranslations {
   btnClose: string;
 }
 
+export interface DownloadApkTranslations {
+  badge: string;
+  title: string;
+  subtitle: string;
+  directInstallTitle: string;
+  directInstallSubtitle: string;
+  btnInstallDirect: string;
+  installedBadge: string;
+  method1Title: string;
+  method1Step1: string;
+  method1Step2: string;
+  method1Step3: string;
+  method2Title: string;
+  method2Desc: string;
+  appUrlLabel: string;
+  btnCopyUrl: string;
+  urlCopied: string;
+  btnOpenPwaBuilder: string;
+  benefit1: string;
+  benefit2: string;
+  benefit3: string;
+  benefit4: string;
+  iosTitle: string;
+  iosDesc: string;
+  btnClose: string;
+}
+
 export interface ModalTranslations {
   scoreboard: ScoreboardTranslations;
   matchConfig: MatchConfigTranslations;
@@ -150,6 +177,7 @@ export interface ModalTranslations {
   trumpInspect: TrumpInspectTranslations;
   showHand: ShowHandTranslations;
   testRunner: TestRunnerTranslations;
+  downloadApk: DownloadApkTranslations;
 }
 
 export const MODAL_TRANSLATIONS: Record<RulebookLanguage, ModalTranslations> = {
@@ -322,6 +350,32 @@ export const MODAL_TRANSLATIONS: Record<RulebookLanguage, ModalTranslations> = {
       failBadge: 'FAIL',
       btnClose: 'Close Test Viewer',
     },
+    downloadApk: {
+      badge: 'Android · WebAPK · Standalone',
+      title: 'Download APK & Install Mobile App',
+      subtitle: 'Play The Universal Joker full-screen with offline support and Dadaji Joker artwork.',
+      directInstallTitle: 'Option 1: Direct Android App / WebAPK (Recommended)',
+      directInstallSubtitle: 'One-tap native installation directly from Google Chrome on Android.',
+      btnInstallDirect: '⚡ Install Android App Now',
+      installedBadge: '✓ Already Installed on this Device',
+      method1Title: 'How to Install on Android Phone (Chrome):',
+      method1Step1: '1. Open this game in Google Chrome on your Android mobile.',
+      method1Step2: '2. Tap the Chrome menu button (⋮ three dots at top-right).',
+      method1Step3: '3. Tap "Install app" or "Add to Home screen". Android packages and installs a native WebAPK with full offline caching!',
+      method2Title: 'Option 2: Generate / Download Standalone .apk File (PWABuilder)',
+      method2Desc: 'Universal Joker is a compliant Progressive Web App. You can generate a signed, standalone Android .apk package file with 1 click via Microsoft / Google PWABuilder.',
+      appUrlLabel: 'Live App URL for APK Packaging:',
+      btnCopyUrl: 'Copy App URL',
+      urlCopied: 'Copied to Clipboard!',
+      btnOpenPwaBuilder: 'Open PWABuilder (Package .APK)',
+      benefit1: '⚡ 100% Offline Play: Play rounds anywhere without internet.',
+      benefit2: '📱 Fullscreen Immersion: No browser URL bar or distractions.',
+      benefit3: '🃏 Dadaji Joker Icon: Placed directly on your home screen & app drawer.',
+      benefit4: '🌐 3 Languages: Odia, Hindi, and English built right into the app.',
+      iosTitle: 'iPhone & iPad (iOS) Users:',
+      iosDesc: 'Tap the Share button in Safari toolbar, then scroll down and tap "Add to Home Screen".',
+      btnClose: 'Return to Table',
+    },
   },
   hi: {
     scoreboard: {
@@ -491,6 +545,32 @@ export const MODAL_TRANSLATIONS: Record<RulebookLanguage, ModalTranslations> = {
       failBadge: 'विफल (FAIL)',
       btnClose: 'परीक्षण दर्शक बंद करें',
     },
+    downloadApk: {
+      badge: 'एंड्रॉइड · WebAPK · ऑफलाइन सपोर्ट',
+      title: 'APK (एपीके) डाउनलोड एवं मोबाइल ऐप इंस्टॉलेशन',
+      subtitle: 'द यूनिवर्सल जोकर को अपने फोन में बिना इंटरनेट एवं फुल-स्क्रीन में खेलें।',
+      directInstallTitle: 'पहला तरीका: फोन में सीधे ऐप / WebAPK इंस्टॉल करें (सर्वश्रेष्ठ)',
+      directInstallSubtitle: 'गूगल क्रोम द्वारा सीधे आपके फोन पर स्वतः हस्ताक्षरित नेटिव ऐप तैयार होता है।',
+      btnInstallDirect: '⚡ अभी एंड्रॉइड ऐप इंस्टॉल करें',
+      installedBadge: '✓ आपके फोन पर पहले से इंस्टॉल है',
+      method1Title: 'एंड्रॉइड फोन (Chrome) पर कैसे इंस्टॉल करें:',
+      method1Step1: '1. अपने एंड्रॉइड फोन में Google Chrome पर यह गेम खोलें।',
+      method1Step2: '2. ऊपर दाईं ओर दिए गए तीन बिंदुओं (⋮) मेनू पर टैप करें।',
+      method1Step3: '3. "Install app" (या "Add to Home screen") चुनें। फोन में ऑफलाइन सपोर्ट सहित असली ऐप इंस्टॉल हो जाएगा!',
+      method2Title: 'दूसरा तरीका: स्टैंडअलोन .apk पैकेज फाइल डाउनलोड (PWABuilder)',
+      method2Desc: 'यह गेम प्रमाणित प्रोग्रेसिव वेब ऐप है। PWABuilder के जरिए एक क्लिक में सीधे Android .apk फाइल पैकेज डाउनलोड कर सकते हैं।',
+      appUrlLabel: 'एपीके बनाने के लिए गेम का लाइव लिंक:',
+      btnCopyUrl: 'लिंक कॉपी करें',
+      urlCopied: 'लिंक कॉपी हो गया!',
+      btnOpenPwaBuilder: 'PWABuilder खोलें (APK पैकेज तैयार करें)',
+      benefit1: '⚡ 100% ऑफलाइन गेमप्ले: बिना इंटरनेट कहीं भी खेलें।',
+      benefit2: '📱 फुल-स्क्रीन अनुभव: ब्राउज़र का कोई झंझट नहीं।',
+      benefit3: '🃏 दादाजी जोकर ऐप आइकन: आपकी होम स्क्रीन पर सजेगा।',
+      benefit4: '🌐 3 भाषाएं: ओड़ିଆ, हिंदी एवं अंग्रेजी का पूरा समर्थन।',
+      iosTitle: 'iPhone / iPad (iOS) उपयोगकर्ता:',
+      iosDesc: 'Safari ब्राउज़र में नीचे दिए गए "Share" बटन पर टैप करें, फिर "Add to Home Screen" चुनें।',
+      btnClose: 'टेबल पर वापस जाएं',
+    },
   },
   or: {
     scoreboard: {
@@ -659,6 +739,32 @@ export const MODAL_TRANSLATIONS: Record<RulebookLanguage, ModalTranslations> = {
       passBadge: 'ପାସ୍ (PASS)',
       failBadge: 'ଫେଲ୍ (FAIL)',
       btnClose: 'ପରୀକ୍ଷା ଦର୍ଶକ ବନ୍ଦ କରନ୍ତୁ',
+    },
+    downloadApk: {
+      badge: 'ଆଣ୍ଡ୍ରଏଡ୍ · WebAPK · ଅଫଲାଇନ୍ ସୁବିଧା',
+      title: 'APK ଡାଉନଲୋଡ୍ ଓ ମୋବାଇଲ୍ ଆପ୍ ଇନଷ୍ଟଲ୍',
+      subtitle: 'ଦ ୟୁନିଭର୍ସାଲ୍ ଜୋକର୍ ଖେଳକୁ ନିଜ ଫୋନରେ ବିନା ଇଣ୍ଟରନେଟ୍ ଓ ଫୁଲ୍ ସ୍କ୍ରିନ୍ ମୋଡ୍‌ରେ ଖେଳନ୍ତୁ।',
+      directInstallTitle: 'ପ୍ରଥମ ଉପାୟ: ଫୋନରେ ସିଧାସଳଖ ଆପ୍ / WebAPK ଇନଷ୍ଟଲ୍ (ସର୍ବୋତ୍ତମ)',
+      directInstallSubtitle: 'ଗୁଗଲ୍ କ୍ରୋମ୍ ସାହାଯ୍ୟରେ ଫୋନରେ ସ୍ୱୟଂଚାଳିତ ପ୍ରାମାଣିକ ନେଟିଭ୍ ଆପ୍ ତିଆରି ହୋଇଯାଏ।',
+      btnInstallDirect: '⚡ ତୁରନ୍ତ ଆଣ୍ଡ୍ରଏଡ୍ ଆପ୍ ଇନଷ୍ଟଲ୍ କରନ୍ତୁ',
+      installedBadge: '✓ ଏହି ଫୋନରେ ଆପ୍ ପୂର୍ବରୁ ଇନଷ୍ଟଲ୍ ଅଛି',
+      method1Title: 'ଆଣ୍ଡ୍ରଏଡ୍ ଫୋନ୍ (Chrome) ରେ କିପରି ଇନଷ୍ଟଲ୍ କରିବେ:',
+      method1Step1: '୧. ନିଜ ଆଣ୍ଡ୍ରଏଡ୍ ଫୋନରେ Google Chrome ବ୍ରାଉଜର୍‌ରେ ଏହି ଖେଳ ଖୋଲନ୍ତୁ।',
+      method1Step2: '୨. ଉପରେ ଡାହାଣ ପାର୍ଶ୍ୱରେ ଥିବା ତିନୋଟି ବିନ୍ଦୁ (⋮) ମେନୁକୁ ଛୁଅନ୍ତୁ।',
+      method1Step3: '୩. "Install app" (ବା "Add to Home screen") ବାଛନ୍ତୁ। ଫୋନ୍ ନିଜେ ଏକ ସମ୍ପୂର୍ଣ୍ଣ ଆପ୍ ପ୍ରସ୍ତୁତ କରି ହୋମ୍ ସ୍କ୍ରିନ୍‌ରେ ସ୍ଥାପନ କରିଦେବ!',
+      method2Title: 'ଦ୍ୱିତୀୟ ଉପାୟ: ସିଧାସଳଖ .apk ଫାଇଲ୍ ଡାଉନଲୋଡ୍ (PWABuilder)',
+      method2Desc: 'ଏହି ଗେମ୍ ଏକ ପ୍ରମାଣିତ ପ୍ରୋଗ୍ରେସିଭ୍ ୱେବ୍ ଆପ୍। PWABuilder ବ୍ୟବହାର କରି ଗୋଟିଏ କ୍ଲିକ୍‌ରେ ସାଇନ୍ ହୋଇଥିବା Android .apk ଫାଇଲ୍ ପ୍ୟାକେଜ୍ ଡାଉନଲୋଡ୍ କରିପାରିବେ।',
+      appUrlLabel: 'ଏପିକେ ଫାଇଲ୍ ତିଆରି ପାଇଁ ଲାଇଭ୍ ଲିଙ୍କ୍:',
+      btnCopyUrl: 'ଲିଙ୍କ୍ କପି କରନ୍ତୁ',
+      urlCopied: 'ଲିଙ୍କ୍ କପି ହୋଇଗଲା!',
+      btnOpenPwaBuilder: 'PWABuilder ଖୋଲନ୍ତୁ (APK ପ୍ୟାକେଜ୍ ପ୍ରସ୍ତୁତ)',
+      benefit1: '⚡ ୧୦୦% ଅଫଲାଇନ୍ ଖେଳ: ଇଣ୍ଟରନେଟ୍ ନଥିଲେ ବି ଯେକୌଣସି ସ୍ଥାନରେ ଖେଳିପାରିବେ।',
+      benefit2: '📱 ଫୁଲ୍-ସ୍କ୍ରିନ୍ ଅନୁଭୂତି: କୌଣସି ବ୍ରାଉଜର୍ ଲିଙ୍କ୍ ବାର୍ ରହିବ ନାହିଁ।',
+      benefit3: '🃏 ଦାଦାଜୀ ଜୋକର୍ ଆଇକନ୍: ସିଧାସଳଖ ମୋବାଇଲ୍ ସ୍କ୍ରିନ୍‌ରେ ରହିବ।',
+      benefit4: '🌐 ୩ଟି ଭାଷା: ଓଡ଼ିଆ, ହିନ୍ଦୀ ଏବଂ ଇଂରାଜୀ ସମ୍ପୂର୍ଣ୍ଣ ଉପଲବ୍ଧ।',
+      iosTitle: 'iPhone / iPad (iOS) ଉପଭୋକ୍ତା:',
+      iosDesc: 'Safari ବ୍ରାଉଜର୍‌ର ତଳେ ଥିବା "Share" ବଟନ୍ ଦବାନ୍ତୁ, ତା’ପରେ "Add to Home Screen" ବାଛନ୍ତୁ।',
+      btnClose: 'ଟେବୁଲ୍‌କୁ ଫେରନ୍ତୁ',
     },
   },
 };
