@@ -131,17 +131,6 @@ export const TableBiddingCenter = React.memo<TableBiddingCenterProps>(({
         <div className="absolute bottom-1 left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-amber-400/80 rounded-bl pointer-events-none" />
         <div className="absolute bottom-1 right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-amber-400/80 rounded-br pointer-events-none" />
 
-        {/* Reshuffle Notice Banner when cards were reshuffled */}
-        {reshuffleReason && (
-          <div className="px-2 py-0.5 rounded-lg bg-amber-950/95 border border-amber-500 text-amber-200 text-[10px] sm:text-xs flex items-center gap-1.5 leading-tight animate-fade-in flex-shrink-0">
-            <span className="text-amber-400 font-bold text-xs flex-shrink-0">🔀</span>
-            <div className="truncate">
-              <strong className="font-cinzel text-amber-300">Reshuffle Notice:</strong>{' '}
-              <span>{reshuffleReason}</span>
-            </div>
-          </div>
-        )}
-
         {/* ================= 1. CENTER TOP: DEALER NAME ================= */}
         <div className="flex items-center justify-center gap-1.5 py-0.5 text-center border-b border-amber-800/40 flex-shrink-0">
           <span className="w-4 h-4 rounded-full bg-gradient-to-br from-amber-300 to-amber-600 border border-amber-200 text-neutral-950 font-cinzel font-black text-[9px] flex items-center justify-center shadow-xs flex-shrink-0">
