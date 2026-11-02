@@ -13,6 +13,7 @@ interface TableControlsProps {
   dealer: PlayerId;
   dealerName: string;
   statusMessage: string;
+  reshuffleReason?: string | null;
   partnerships: Record<TeamId, Partnership>;
   matchConfig: MatchConfig;
   timeRemainingSeconds: number | null;
@@ -37,6 +38,7 @@ export const TableControls = React.memo<TableControlsProps>(({
   isJokerRevealHand,
   dealerName,
   statusMessage,
+  reshuffleReason,
   partnerships,
   matchConfig,
   timeRemainingSeconds,
@@ -94,7 +96,7 @@ export const TableControls = React.memo<TableControlsProps>(({
           </div>
           <div className="leading-tight">
             <h1 className="font-cinzel text-xs sm:text-sm lg:text-base font-black text-amber-100 tracking-wider">
-              The Universal Joker
+              The Ultimate Colors
             </h1>
             <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-400/80 font-outfit">
               <span className="font-semibold text-amber-300">Hand {handNumber}</span>
@@ -394,7 +396,7 @@ export const TableControls = React.memo<TableControlsProps>(({
             <span className="text-base flex-shrink-0">🃏</span>
             <div className="truncate">
               <span className="font-cinzel text-xs font-black text-amber-200 tracking-wide block truncate">
-                The Universal Joker
+                The Ultimate Colors
               </span>
               <span className="text-[9px] text-amber-400/80 font-mono block">
                 H{handNumber} · {dealerName} (D)
@@ -565,6 +567,16 @@ export const TableControls = React.memo<TableControlsProps>(({
           </div>
         )}
       </div>
+
+      {/* Prominent Reshuffle Notice Banner - ensures reason for reshuffle is immediately visible */}
+      {reshuffleReason && (
+        <div className="w-full max-w-3xl mx-auto py-1 px-3 sm:px-4 rounded-xl bg-gradient-to-r from-amber-950 via-amber-900 to-amber-950 border-2 border-amber-400 text-amber-200 text-xs sm:text-sm font-outfit shadow-lg flex items-center justify-center gap-2 animate-fade-in text-center">
+          <span className="text-amber-300 font-cinzel font-black uppercase text-[11px] sm:text-xs tracking-wider flex items-center gap-1 flex-shrink-0">
+            <span>🔀</span> Reshuffle Reason:
+          </span>
+          <span className="font-semibold text-amber-100">{reshuffleReason}</span>
+        </div>
+      )}
 
       {/* Status Notice Ribbon */}
       <div className="w-full max-w-3xl mx-auto py-0.5 sm:py-1 px-3 sm:px-4 rounded-full bg-gradient-to-r from-neutral-950/40 via-amber-950/80 to-neutral-950/40 border border-amber-600/35 text-center shadow-inner truncate">

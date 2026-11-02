@@ -120,6 +120,7 @@ export interface GameState {
   invalidPartnershipId: TeamId | null; // If combined bid < 2
   phase: GamePhase;
   statusMessage: string;
+  reshuffleReason: string | null;
   lastTrickWinner: PlayerId | null;
   matchWinner: TeamId | 'tie' | null;
   settings: GameSettings;

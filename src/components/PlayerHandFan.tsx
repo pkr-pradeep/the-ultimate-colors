@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Card } from '../types/game';
 import { CardView } from './CardView';
 import { ArrowUpDown } from 'lucide-react';
+import { StatBox } from './PlayerSeat';
 
 interface PlayerHandFanProps {
   cards: Card[];
@@ -9,7 +10,10 @@ interface PlayerHandFanProps {
   isMyTurn: boolean;
   isBidding?: boolean;
   trumpSuit: string | null;
+  playerBid?: number | null;
+  playerTricksWon?: number;
   onPlayCard: (card: Card) => void;
+  seatContent?: React.ReactNode;
 }
 
 export const PlayerHandFan: React.FC<PlayerHandFanProps> = ({
@@ -18,7 +22,10 @@ export const PlayerHandFan: React.FC<PlayerHandFanProps> = ({
   isMyTurn,
   isBidding = false,
   trumpSuit,
+  playerBid,
+  playerTricksWon,
   onPlayCard,
+  seatContent,
 }) => {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'suit' | 'rank' | 'natural'>('suit');
@@ -126,13 +133,17 @@ export const PlayerHandFan: React.FC<PlayerHandFanProps> = ({
   const yMultiplier = isMobile ? 0.6 : isTablet ? 0.75 : 0.95;
 
   // Fast, memoized card click handler ensuring 60+ FPS without re-allocating
+  // When touched again during bidding or waiting, card returns to resting position
   const handleCardClick = useCallback((card: Card) => {
     const isLegal = legalCards.some(c => c.id === card.id);
     if (!isLegal) return;
 
-    if (selectedCardIdRef.current === card.id && isMyTurn) {
-      // Second tap on already selected card -> play it immediately!
-      onPlayCard(card);
+    if (selectedCardIdRef.current === card.id) {
+      if (isMyTurn) {
+        // Second tap on already selected card during play -> play it immediately!
+        onPlayCard(card);
+      }
+      // Tapping the card again returns it to resting position
       setSelectedCardId(null);
     } else {
       setSelectedCardId(card.id);
@@ -155,78 +166,26 @@ export const PlayerHandFan: React.FC<PlayerHandFanProps> = ({
     : false;
 
   return (
-    <div className="relative w-full max-w-full flex flex-col items-center select-none pt-0.5 pb-0.5 overflow-x-clip">
-      {/* Top Action Bar: Large Card Spotlight Preview & Quick Sort Controls */}
-      <div className="w-full max-w-4xl px-2 mb-1 flex items-center justify-between min-h-[32px] sm:min-h-[38px] gap-2">
-        {/* Quick Hand Sorting Button */}
-        <button
-          type="button"
-          onClick={() => {
-            setSortBy(prev => (prev === 'suit' ? 'rank' : prev === 'rank' ? 'natural' : 'suit'));
-          }}
-          title="Toggle hand arrangement (By Suit / By Rank / Deal Order)"
-          className="px-2.5 py-1.5 rounded-lg bg-neutral-900/90 hover:bg-neutral-800 text-amber-300 border border-amber-800/50 text-[10px] sm:text-xs font-cinzel flex items-center gap-1.5 cursor-pointer transition-colors flex-shrink-0 shadow-sm"
-        >
-          <ArrowUpDown size={12} />
-          <span>Sort: {sortBy === 'suit' ? 'Suits' : sortBy === 'rank' ? 'Ranks' : 'Deal'}</span>
-        </button>
-
-        {/* Selected Card Prominent Magnifier Banner (Eliminates eye strain on mobile) */}
-        {selectedCard ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-xl bg-[#FAF6EC] border-2 border-amber-500 shadow-md animate-fade-in flex-shrink-0">
-            <span className="text-[10px] sm:text-xs font-semibold text-neutral-600 hidden xs:inline">
-              Selected:
-            </span>
-            <span className="font-cinzel font-black text-xs sm:text-sm text-neutral-950 truncate max-w-[100px] sm:max-w-none">
-              {selectedCard.name}
-            </span>
-            <span className="font-mono font-black text-xs sm:text-sm px-1.5 py-0.5 rounded bg-amber-200 border border-amber-600 text-amber-950 flex-shrink-0">
-              {selectedCard.shortName}
-            </span>
-            {trumpSuit && selectedCard.suit === trumpSuit && !selectedCard.isDadajiJoker && (
-              <span className="text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-600 text-white uppercase tracking-wider flex-shrink-0">
-                Trump
-              </span>
-            )}
-            {selectedCard.isDadajiJoker && (
-              <span className="text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500 text-neutral-950 uppercase tracking-wider flex-shrink-0">
-                Supreme ★
-              </span>
-            )}
-          </div>
-        ) : (
-          /* Empty placeholder pill to preserve vertical rhythm */
-          <div className="text-[10px] sm:text-xs text-amber-300/60 font-outfit truncate">
-            {cards.length} cards in hand
-          </div>
-        )}
-
-        {/* Confirm Play Action Button (active during player's turn) */}
-        {isMyTurn && selectedCard && (
-          <div className="animate-fade-in flex items-center flex-shrink-0">
-            <button
-              type="button"
-              onClick={handlePlaySelected}
-              disabled={!isSelectedCardLegal}
-              className={`min-h-[34px] sm:min-h-[40px] px-3 sm:px-5 py-1 sm:py-1.5 rounded-xl font-cinzel font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-lg transition-transform active:scale-95 cursor-pointer flex items-center gap-1 ${
-                isSelectedCardLegal
-                  ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-neutral-950 border border-amber-200 shadow-amber-500/50'
-                  : 'bg-neutral-800 text-neutral-400 border border-neutral-700 cursor-not-allowed'
-              }`}
-            >
-              <span>Play {selectedCard.shortName}</span>
-            </button>
-          </div>
-        )}
-      </div>
-
+    <div
+      className="relative w-full max-w-full flex flex-col items-center select-none pt-0 pb-0 overflow-x-clip"
+      onClick={e => {
+        if (e.target === e.currentTarget) {
+          setSelectedCardId(null);
+        }
+      }}
+    >
       {/* The Natural Fan Arc Container - smooth, hardware-accelerated GPU transitions & bounded width */}
       <div
         className={`relative ${
           isBidding
-            ? 'h-17 sm:h-20 md:h-24'
-            : 'h-20 sm:h-24 md:h-28'
+            ? 'h-18 sm:h-22 md:h-26'
+            : 'h-22 sm:h-26 md:h-30'
         } w-full flex items-end justify-center px-2 pb-0.5 overflow-x-clip`}
+        onClick={e => {
+          if (e.target === e.currentTarget) {
+            setSelectedCardId(null);
+          }
+        }}
       >
         {sortedCards.map((card, index) => {
           const isSelected = selectedCardId === card.id;
@@ -262,15 +221,56 @@ export const PlayerHandFan: React.FC<PlayerHandFanProps> = ({
         })}
       </div>
 
-      {/* Fan Helper Tooltip */}
-      <div className="text-[9px] sm:text-[10px] text-amber-300/80 font-outfit mt-0.5 text-center px-2 truncate max-w-md">
-        {isBidding
-          ? 'Bidding Phase: Tap cards to inspect suits and count trumps'
-          : isMyTurn
-          ? selectedCard
-            ? 'Tap card again or click Play to play it'
-            : 'Tap a card to select it'
-          : 'Waiting for other players to move...'}
+      {/* Bottom Bar: Sort Option, BID Box, Player Seat Nameplate, WIN Box, Simple Hand Count & Play Action */}
+      <div className="w-full max-w-3xl px-2 sm:px-4 mt-1 sm:mt-1.5 flex items-center justify-between sm:justify-center gap-1.5 sm:gap-3 z-20">
+        {/* Quick Hand Sorting Button - Kept safely at bottom, completely clear of fanned cards */}
+        <button
+          type="button"
+          onClick={() => {
+            setSortBy(prev => (prev === 'suit' ? 'rank' : prev === 'rank' ? 'natural' : 'suit'));
+          }}
+          title="Toggle hand arrangement (By Suit / By Rank / Deal Order)"
+          className="px-2 sm:px-2.5 py-1 rounded-md bg-neutral-900/85 hover:bg-neutral-800 text-amber-300 border border-amber-800/40 text-[10px] sm:text-xs font-cinzel flex items-center gap-1 cursor-pointer transition-colors flex-shrink-0 shadow-sm active:scale-95"
+        >
+          <ArrowUpDown size={11} className="text-amber-400" />
+          <span className="hidden xs:inline">Sort:</span>
+          <span>{sortBy === 'suit' ? 'Suits' : sortBy === 'rank' ? 'Ranks' : 'Deal'}</span>
+        </button>
+
+        {/* Human Player Prominent BID Box */}
+        <StatBox type="bid" value={playerBid} size="sm" />
+
+        {/* Center: Aadesh Seat Nameplate */}
+        {seatContent ? (
+          <div className="flex-shrink-0">
+            {seatContent}
+          </div>
+        ) : null}
+
+        {/* Human Player Prominent WIN Box */}
+        <StatBox type="win" value={playerTricksWon ?? 0} size="sm" />
+
+        {/* Right: Simple Hand Count & Quick Play Action (no fancy badges or pills) */}
+        <div className="flex items-center justify-end min-w-[65px] sm:min-w-[95px] flex-shrink-0">
+          {isMyTurn && selectedCard ? (
+            <button
+              type="button"
+              onClick={handlePlaySelected}
+              disabled={!isSelectedCardLegal}
+              className={`min-h-[28px] sm:min-h-[30px] px-2.5 sm:px-3 py-0.5 rounded-md font-cinzel font-black text-[10px] sm:text-xs uppercase tracking-wider shadow-md transition-transform active:scale-95 cursor-pointer flex items-center gap-1 ${
+                isSelectedCardLegal
+                  ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-neutral-950 border border-amber-200 shadow-amber-500/40'
+                  : 'bg-neutral-800 text-neutral-400 border border-neutral-700 cursor-not-allowed'
+              }`}
+            >
+              <span>Play {selectedCard.shortName}</span>
+            </button>
+          ) : (
+            <span className="text-[10px] sm:text-xs text-amber-300/75 font-outfit select-none whitespace-nowrap">
+              {cards.length} cards
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

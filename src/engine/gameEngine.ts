@@ -117,6 +117,7 @@ export function initializeMatch(
     invalidPartnershipId: null,
     phase: 'idle',
     statusMessage: 'Ready to deal cards.',
+    reshuffleReason: null,
     lastTrickWinner: null,
     matchWinner: null,
     settings: {
@@ -131,7 +132,7 @@ export function initializeMatch(
 /**
  * Deals a new hand
  */
-export function startHand(state: GameState, customDeck?: Card[]): GameState {
+export function startHand(state: GameState, customDeck?: Card[], reshuffleReason?: string | null): GameState {
   if (state.matchWinner) {
     throw new Error('Cannot start new hand: match is already completed.');
   }
@@ -143,10 +144,8 @@ export function startHand(state: GameState, customDeck?: Card[]): GameState {
   const playability = validateDealPlayability(deal.hands, deal.trumpSuit);
   if (!playability.isPlayable) {
     const unplayableName = state.players[playability.unplayablePlayerId!].name;
-    return startHand({
-      ...state,
-      statusMessage: `${unplayableName} was dealt no face cards (A,K,Q,J), no trumps, and no Joker. Hand cannot be played — reshuffled & redealt!`,
-    });
+    const reason = `${unplayableName} had no face cards (A,K,Q,J), no trumps, and no Joker (Unplayable Hand). Cards reshuffled & redealt!`;
+    return startHand(state, customDeck, reason);
   }
 
   const biddingSequence = getBiddingSequence(state.dealer);
@@ -175,9 +174,15 @@ export function startHand(state: GameState, customDeck?: Card[]): GameState {
     tricksWon: 0,
   };
 
-  const statusMsg = deal.isJokerRevealHand
+  const finalReshuffleReason = reshuffleReason !== undefined ? reshuffleReason : (state.reshuffleReason || null);
+
+  const baseStatusMsg = deal.isJokerRevealHand
     ? 'Joker revealed on final card! No permanent trump suit. The suit led in each trick becomes highest suit.'
     : `Trump is ${deal.trumpSuit?.toUpperCase()} (revealed by final card: ${deal.finalCard.shortName}). Bidding phase active.`;
+
+  const statusMsg = finalReshuffleReason
+    ? `🔀 Reshuffled: ${finalReshuffleReason} — ${baseStatusMsg}`
+    : baseStatusMsg;
 
   return {
     ...state,
@@ -196,6 +201,7 @@ export function startHand(state: GameState, customDeck?: Card[]): GameState {
     invalidPartnershipId: null,
     phase: 'bidding',
     statusMessage: statusMsg,
+    reshuffleReason: finalReshuffleReason,
     lastTrickWinner: null,
   };
 }
@@ -269,11 +275,11 @@ export function submitPlayerBid(
     if (roundValidation.requiresReshuffle) {
       // Section 4.1 reshuffle condition triggered: reshuffle by next right
       const nextDealer = getNextPlayerCounterClockwise(state.dealer);
+      const reason = `${roundValidation.reshuffleReason} Dealer rotates counter-clockwise to ${state.players[nextDealer].name}.`;
       return startHand({
         ...state,
         dealer: nextDealer,
-        statusMessage: `${roundValidation.reshuffleReason} Dealer rotates to ${state.players[nextDealer].name}.`,
-      });
+      }, undefined, reason);
     }
 
     // Partnership bid minimum rule (< 2 tricks): Hand CANNOT start!

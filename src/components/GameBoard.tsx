@@ -336,7 +336,7 @@ export const GameBoard: React.FC = () => {
     sounds.playShuffleSound();
     setGameState(prev => {
       const reset = { ...prev, matchWinner: null, phase: 'idle' as const };
-      return startHand(reset);
+      return startHand(reset, undefined, 'Manual redeal requested by player.');
     });
   }, []);
 
@@ -476,6 +476,7 @@ export const GameBoard: React.FC = () => {
         dealer={gameState.dealer}
         dealerName={gameState.players[gameState.dealer].name}
         statusMessage={gameState.statusMessage}
+        reshuffleReason={gameState.reshuffleReason}
         partnerships={gameState.partnerships}
         matchConfig={gameState.matchConfig}
         timeRemainingSeconds={gameState.timeRemainingSeconds}
@@ -530,6 +531,7 @@ export const GameBoard: React.FC = () => {
                 isRevisionMode={gameState.phase === 'bidding_revision'}
                 currentBidderId={currentBidderId}
                 currentBidderName={currentBidderId ? gameState.players[currentBidderId]?.name : undefined}
+                reshuffleReason={gameState.reshuffleReason}
                 hand={humanPlayer.hand}
                 suggestedBid={calculateAIBid(
                   humanPlayer.hand,
@@ -544,6 +546,7 @@ export const GameBoard: React.FC = () => {
                 partnerBid={gameState.players.north.bid}
                 players={gameState.players}
                 onSelectBid={handleHumanSelectBid}
+                language={appLanguage}
               />
             ) : gameState.phase === 'round_summary' && !gameState.matchWinner ? (
               <div className="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl bg-neutral-950/90 border-2 border-amber-600/60 shadow-2xl text-center max-w-sm animate-fade-in z-30">
@@ -639,19 +642,19 @@ export const GameBoard: React.FC = () => {
           isMyTurn={isHumanTurn}
           isBidding={gameState.phase === 'bidding' || gameState.phase === 'bidding_revision'}
           trumpSuit={gameState.trumpSuit}
+          playerBid={humanPlayer.bid}
+          playerTricksWon={humanPlayer.tricksWon}
           onPlayCard={handleHumanPlayCard}
+          seatContent={
+            <PlayerSeat
+              player={gameState.players.south}
+              position="bottom"
+              isCurrentTurn={isHumanTurn}
+              isDealer={gameState.dealer === 'south'}
+              teamScore={gameState.partnerships.team1.matchScore}
+            />
+          }
         />
-
-        {/* Aadesh Calligraphic Ivory Nameplate Centered Directly Beneath Fan */}
-        <div className="mt-0">
-          <PlayerSeat
-            player={gameState.players.south}
-            position="bottom"
-            isCurrentTurn={isHumanTurn}
-            isDealer={gameState.dealer === 'south'}
-            teamScore={gameState.partnerships.team1.matchScore}
-          />
-        </div>
       </footer>
 
       {/* ================= MODALS & OVERLAYS ================= */}
