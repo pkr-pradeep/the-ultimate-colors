@@ -13,6 +13,7 @@ interface TableControlsProps {
   dealer: PlayerId;
   dealerName: string;
   statusMessage: string;
+  reshuffleReason?: string | null;
   partnerships: Record<TeamId, Partnership>;
   matchConfig: MatchConfig;
   timeRemainingSeconds: number | null;
@@ -37,6 +38,7 @@ export const TableControls = React.memo<TableControlsProps>(({
   isJokerRevealHand,
   dealerName,
   statusMessage,
+  reshuffleReason,
   partnerships,
   matchConfig,
   timeRemainingSeconds,
@@ -94,7 +96,7 @@ export const TableControls = React.memo<TableControlsProps>(({
           </div>
           <div className="leading-tight">
             <h1 className="font-cinzel text-xs sm:text-sm lg:text-base font-black text-amber-100 tracking-wider">
-              The Universal Joker
+              The Ultimate Colors
             </h1>
             <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-amber-400/80 font-outfit">
               <span className="font-semibold text-amber-300">Hand {handNumber}</span>
@@ -394,7 +396,7 @@ export const TableControls = React.memo<TableControlsProps>(({
             <span className="text-base flex-shrink-0">🃏</span>
             <div className="truncate">
               <span className="font-cinzel text-xs font-black text-amber-200 tracking-wide block truncate">
-                The Universal Joker
+                The Ultimate Colors
               </span>
               <span className="text-[9px] text-amber-400/80 font-mono block">
                 H{handNumber} · {dealerName} (D)

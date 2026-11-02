@@ -97,9 +97,9 @@ export const WalkthroughModal: React.FC<WalkthroughModalProps> = ({
         or: 'ପର୍ଯ୍ୟାୟ ୧ / ୭ · ସ୍ୱାଗତ',
       },
       title: {
-        en: 'Welcome to The Universal Joker',
-        hi: 'द यूनिवर्सल जोकर में आपका स्वागत है',
-        or: 'ଦ ୟୁନିଭର୍ସାଲ୍ ଜୋକର୍‌କୁ ସ୍ୱାଗତ',
+        en: 'Welcome to The Ultimate Colors',
+        hi: 'द अल्टीमेट कलर्स में आपका स्वागत है',
+        or: 'ଦ ଅଲ୍ଟିମେଟ୍ କଲର୍ସକୁ ସ୍ୱାଗତ',
       },
       subtitle: {
         en: 'A legendary 4-player trick-taking game where Dadaji Joker rules supreme.',

@@ -31,6 +31,8 @@ import { TestRunnerModal } from './TestRunnerModal';
 import { TacticsModal } from './TacticsModal';
 import { ShowHandModal } from './ShowHandModal';
 import { WalkthroughModal } from './WalkthroughModal';
+import { ReshufflePopup } from './ReshufflePopup';
+import { SqueezableActionBanner } from './SqueezableActionBanner';
 import { checkIsFirstTimeUser, RulebookLanguage, getSavedRulebookLanguage, saveRulebookLanguage } from '../utils/firstTimeUser';
 import { AIIntelligenceLevel } from '../types/game';
 
@@ -56,6 +58,15 @@ export const GameBoard: React.FC = () => {
   const [winningHighlightId, setWinningHighlightId] = useState<PlayerId | null>(null);
   const [autoDealCountdown, setAutoDealCountdown] = useState<number | null>(null);
   const [isAutoDealPaused, setIsAutoDealPaused] = useState(false);
+  const [seenReshuffleReason, setSeenReshuffleReason] = useState<string | null>(null);
+
+  const isReshufflePopupOpen = Boolean(
+    gameState.reshuffleReason && gameState.reshuffleReason !== seenReshuffleReason
+  );
+
+  const handleCloseReshufflePopup = useCallback(() => {
+    setSeenReshuffleReason(gameState.reshuffleReason);
+  }, [gameState.reshuffleReason]);
 
   const handleAppLanguageChange = useCallback((lang: RulebookLanguage) => {
     saveRulebookLanguage(lang);
@@ -336,7 +347,7 @@ export const GameBoard: React.FC = () => {
     sounds.playShuffleSound();
     setGameState(prev => {
       const reset = { ...prev, matchWinner: null, phase: 'idle' as const };
-      return startHand(reset);
+      return startHand(reset, undefined, 'Manual redeal requested by player.');
     });
   }, []);
 
@@ -476,6 +487,7 @@ export const GameBoard: React.FC = () => {
         dealer={gameState.dealer}
         dealerName={gameState.players[gameState.dealer].name}
         statusMessage={gameState.statusMessage}
+        reshuffleReason={gameState.reshuffleReason}
         partnerships={gameState.partnerships}
         matchConfig={gameState.matchConfig}
         timeRemainingSeconds={gameState.timeRemainingSeconds}
@@ -530,6 +542,7 @@ export const GameBoard: React.FC = () => {
                 isRevisionMode={gameState.phase === 'bidding_revision'}
                 currentBidderId={currentBidderId}
                 currentBidderName={currentBidderId ? gameState.players[currentBidderId]?.name : undefined}
+                reshuffleReason={gameState.reshuffleReason}
                 hand={humanPlayer.hand}
                 suggestedBid={calculateAIBid(
                   humanPlayer.hand,
@@ -544,6 +557,7 @@ export const GameBoard: React.FC = () => {
                 partnerBid={gameState.players.north.bid}
                 players={gameState.players}
                 onSelectBid={handleHumanSelectBid}
+                language={appLanguage}
               />
             ) : gameState.phase === 'round_summary' && !gameState.matchWinner ? (
               <div className="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl bg-neutral-950/90 border-2 border-amber-600/60 shadow-2xl text-center max-w-sm animate-fade-in z-30">
@@ -596,38 +610,23 @@ export const GameBoard: React.FC = () => {
       {/* ================= BOTTOM FAN HAND & AADESH SEAT (HUMAN PLAYER) ================= */}
       {/* Wide horizontal natural fan with Aadesh calligraphic nameplate centered directly beneath */}
       <footer className="w-full max-w-full relative z-20 pb-0.5 sm:pb-1 flex flex-col items-center flex-shrink-0 overflow-x-clip">
-        {/* User Interactive Hand Action Prompts: Skip Remaining Rounds or Show Hand */}
-        {bothContractsMet && (
-          <div className="mb-1.5 z-30 animate-pulse">
-            <button
-              type="button"
-              onClick={handleSkipRemainingTricks}
-              className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-neutral-950 font-cinzel text-xs sm:text-sm font-black uppercase tracking-wider shadow-2xl border-2 border-amber-200 cursor-pointer flex items-center gap-2 transition-transform transform hover:scale-105 active:scale-95"
-            >
-              <span>⚡</span>
-              <span>Skip Remaining Rounds (Both Contracts Met)</span>
-              <span className="text-[10px] bg-neutral-900/85 text-amber-200 px-2 py-0.5 rounded-full font-mono font-bold">
-                T1: {team1.tricksWon}/{team1.totalBid} · T2: {team2.tricksWon}/{team2.totalBid}
-              </span>
-            </button>
-          </div>
-        )}
+        {/* Squeezable Hand Action Prompts: Appears as full banner, then squeezes to left icon button */}
+        <SqueezableActionBanner
+          type="skip"
+          isVisible={bothContractsMet}
+          onAction={handleSkipRemainingTricks}
+          team1Score={{ won: team1.tricksWon, bid: team1.totalBid }}
+          team2Score={{ won: team2.tricksWon, bid: team2.totalBid }}
+          handNumber={gameState.handNumber}
+        />
 
-        {canShowHand && (
-          <div className="mb-1.5 z-30">
-            <button
-              type="button"
-              onClick={() => setIsShowHandOpen(true)}
-              className="px-4 py-1.5 sm:px-5 sm:py-2 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-cinzel text-xs sm:text-sm font-bold uppercase tracking-wider shadow-2xl border-2 border-emerald-300 cursor-pointer flex items-center gap-2 transition-transform transform hover:scale-105 active:scale-95"
-            >
-              <span>🖐️</span>
-              <span>Show Hand (Claim Remaining Tricks)</span>
-              <span className="text-[10px] bg-black/60 text-emerald-200 px-2 py-0.5 rounded-full font-mono font-bold">
-                Need {tricksNeeded} more trick{tricksNeeded !== 1 ? 's' : ''}
-              </span>
-            </button>
-          </div>
-        )}
+        <SqueezableActionBanner
+          type="show_hand"
+          isVisible={canShowHand}
+          onAction={() => setIsShowHandOpen(true)}
+          tricksNeeded={tricksNeeded}
+          handNumber={gameState.handNumber}
+        />
 
         <PlayerHandFan
           cards={humanPlayer.hand}
@@ -639,19 +638,19 @@ export const GameBoard: React.FC = () => {
           isMyTurn={isHumanTurn}
           isBidding={gameState.phase === 'bidding' || gameState.phase === 'bidding_revision'}
           trumpSuit={gameState.trumpSuit}
+          playerBid={humanPlayer.bid}
+          playerTricksWon={humanPlayer.tricksWon}
           onPlayCard={handleHumanPlayCard}
+          seatContent={
+            <PlayerSeat
+              player={gameState.players.south}
+              position="bottom"
+              isCurrentTurn={isHumanTurn}
+              isDealer={gameState.dealer === 'south'}
+              teamScore={gameState.partnerships.team1.matchScore}
+            />
+          }
         />
-
-        {/* Aadesh Calligraphic Ivory Nameplate Centered Directly Beneath Fan */}
-        <div className="mt-0">
-          <PlayerSeat
-            player={gameState.players.south}
-            position="bottom"
-            isCurrentTurn={isHumanTurn}
-            isDealer={gameState.dealer === 'south'}
-            teamScore={gameState.partnerships.team1.matchScore}
-          />
-        </div>
       </footer>
 
       {/* ================= MODALS & OVERLAYS ================= */}
@@ -740,6 +739,14 @@ export const GameBoard: React.FC = () => {
         onConfirmClaim={handleConfirmClaimShowHand}
         language={appLanguage}
         onLanguageChange={handleAppLanguageChange}
+      />
+
+      {/* Small Reshuffle Reason Popup with cross button and blurred background (does not push components) */}
+      <ReshufflePopup
+        isOpen={isReshufflePopupOpen}
+        reason={gameState.reshuffleReason}
+        onClose={handleCloseReshufflePopup}
+        language={appLanguage}
       />
     </div>
   );
