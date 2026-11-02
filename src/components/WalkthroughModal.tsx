@@ -596,10 +596,10 @@ export const WalkthroughModal: React.FC<WalkthroughModalProps> = ({
             <div className="p-3.5 rounded-2xl bg-neutral-900/80 border border-amber-600/40">
               <h4 className="font-cinzel font-bold text-amber-300 text-xs mb-1 flex items-center gap-1.5">
                 <RotateCcw size={15} className="text-amber-400" />
-                <span>Minimum 6-Bid Reshuffle Rule</span>
+                <span>Summation of Bids Reshuffle Rule (Minimum 6)</span>
               </h4>
               <p className="text-xs text-neutral-300 leading-relaxed">
-                If neither team bids <strong>6 or more</strong> (i.e. both Team 1 and Team 2 bids are below 6), play will not happen. The deck is automatically gathered, reshuffled, and dealt by the next dealer without penalties!
+                Reshuffle will happen when the <strong>summation of both team bids is not greater than or equal to 6</strong> (total bids &lt; 6). For example, if Team A bids 4, then Team B must bid at least 2 for play to happen (4 + 2 = 6). If the combined total is less than 6, cards are automatically reshuffled and dealt by the next dealer without penalties!
               </p>
             </div>
           </div>
@@ -618,10 +618,10 @@ export const WalkthroughModal: React.FC<WalkthroughModalProps> = ({
             <div className="p-3.5 rounded-2xl bg-neutral-900/80 border border-amber-600/40">
               <h4 className="font-cinzel font-bold text-amber-300 text-xs mb-1 flex items-center gap-1.5">
                 <RotateCcw size={15} className="text-amber-400" />
-                <span>न्यूनतम 6-बोली रेशफल नियम</span>
+                <span>कुल बोली योग 6 रेशफल नियम</span>
               </h4>
               <p className="text-xs text-neutral-300 leading-relaxed">
-                यदि दोनों में से किसी भी टीम की बोली <strong>6 या उससे अधिक नहीं पहुंचती</strong> (दोनों 6 से कम पर रहती हैं), तो खेल नहीं होगा। पत्ते बिना किसी पेनल्टी के तुरंत दोबारा बांटे जाएंगे!
+                जब <strong>दोनों टीमों की बोलियों का कुल योग 6 या उससे अधिक नहीं होता</strong> (कुल योग &lt; 6), तो पत्ते दोबारा बांटे जाएंगे। उदाहरण के लिए, यदि टीम A 4 बोलती है, तो खेल शुरू होने के लिए टीम B को कम से कम 2 बोलना होगा (4 + 2 = 6)। यदि कुल योग 6 से कम रहता है, तो पत्ते बिना किसी पेनल्टी के फिर से बांटे जाते हैं!
               </p>
             </div>
           </div>
@@ -640,10 +640,10 @@ export const WalkthroughModal: React.FC<WalkthroughModalProps> = ({
             <div className="p-3.5 rounded-2xl bg-neutral-900/80 border border-amber-600/40">
               <h4 className="font-cinzel font-bold text-amber-300 text-xs mb-1 flex items-center gap-1.5">
                 <RotateCcw size={15} className="text-amber-400" />
-                <span>ସର୍ବନିମ୍ନ ୬-ବିଡ୍ ରିଶଫଲ୍ ନିୟମ</span>
+                <span>ସର୍ବନିମ୍ନ ୬-ବିଡ୍ ସମଷ୍ଟି ରିଶଫଲ୍ ନିୟମ</span>
               </h4>
               <p className="text-xs text-neutral-300 leading-relaxed">
-                ଯଦି କୌଣସି ଦଳର ଡାକ <strong>୬ କିମ୍ବା ତା’ଠାରୁ ଅଧିକ ନହୁଏ</strong>, ତେବେ ସେହି ହାତ ଖେଳାଯିବ ନାହିଁ। ବିନା କୌଣସି ପେନାଲ୍ଟିରେ କାର୍ଡଗୁଡ଼ିକ ତୁରନ୍ତ ପରବର୍ତ୍ତୀ ଡିଲର୍‌ଙ୍କ ଦ୍ୱାରା ପୁଣି ବଣ୍ଟାଯିବ!
+                ଯଦି ଦୁଇଟି ଯାକ ଦଳର <strong>ମୋଟ ଡାକର ସମଷ୍ଟି (ଯୋଗଫଳ) ୬ କିମ୍ବା ତା’ଠାରୁ ଅଧିକ ନହୁଏ</strong> (ମୋଟ ବିଡ୍ &lt; ୬), ତେବେ କାର୍ଡ ପୁଣି ବଣ୍ଟାଯିବ। ଉଦାହରଣସ୍ୱରୂପ, ଯଦି ଦଳ 'A' ୪ ଡାକେ, ତେବେ ଖେଳ ଆଗକୁ ବଢ଼ିବା ପାଇଁ ଦଳ 'B' କୁ ଅନ୍ତତଃ ୨ ଡାକିବାକୁ ପଡ଼ିବ (୪ + ୨ = ୬)। ଯଦି ମୋଟ ସମଷ୍ଟି ୬ ରୁ କମ୍ ହୁଏ, ବିନା ପେନାଲ୍ଟିରେ ତାସ୍ ପୁଣି ବଣ୍ଟାଯିବ!
               </p>
             </div>
           </div>
