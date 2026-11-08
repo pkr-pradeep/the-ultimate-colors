@@ -75,3 +75,40 @@ Points are awarded on a raw point-for-trick basis. The traditional multiplicatio
 * If a team manages to successfully capture **all 13 tricks** in a single hand, their score is **automatically doubled**, regardless of what they originally bid.
 * **The Math Breakdown:** If a team bids 13 and captures all 13 tricks, they get the High Contract double (26 points) which becomes the baseline, resulting in **+26 points**.
 * **The Opponent Deficit:** If one team takes all 13 tricks, the opposing team automatically takes 0 tricks. Because the opposing team's minimum required bid was 2, they failed their contract and are penalized exactly their bid (e.g., **-2 points**).
+
+### SECTION 6: Andriod support
+#### 6.1 This folder is a React + Vite web app with PWA support, not a Python project, and it doesn’t currently include Capacitor/Android project files. I’m checking the build config and runtime dependencies now; that determines whether it can be packaged as a self-contained APK or needs network/API setup too.
+
+
+The build config confirms this is a static React game, so the existing PWA is already the lightest installable route. For a distributable `.apk`, Capacitor can wrap the Vite `dist` output without rewriting the game; I’m checking one small network-dependent startup helper before I call out any caveats.
+
+
+
+`the-ultimate-colors` isn’t Python: it’s a React + Vite app, and I found no `.py` files in that folder. The simplest way to make this app into an Android APK is to package its existing web build with Capacitor; there’s no need to rewrite the game.
+
+#### 6.2 From PowerShell:
+
+##### 6.2.1. Install Android Studio and its Android SDK, then open the project folder:
+   ```powershell
+   cd C:\devl\the-ultimate-colors
+   ```
+
+##### 6.2.2 Add Capacitor:
+   ```powershell
+   npm install @capacitor/core @capacitor/android
+   npm install -D @capacitor/cli
+   npx cap init
+   ```
+   Enter **The Universal Joker** as the app name and a unique ID such as `com.yourname.universaljoker`.
+
+##### 6.2.3 In the generated `capacitor.config.ts`, make sure `webDir` is set to `dist`. Then build and add Android:
+   ```powershell
+   npm run build
+   npx cap add android
+   npx cap sync android
+   npx cap open android
+   ```
+
+4. In Android Studio, use **Build > Build Bundle(s) / APK(s) > Build APK(s)**. The debug APK will be under `android\app\build\outputs\apk\debug\app-debug.apk`. For distribution, generate a signed release APK from Android Studio.
+
+When you change the app later, run `npm run build` and `npx cap sync android` again before rebuilding. This app also already supports PWA installation: deploy it over HTTPS and install it from Chrome, if you don’t specifically need an APK.
