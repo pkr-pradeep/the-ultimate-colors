@@ -510,7 +510,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
       />
 
       {/* ================= MAIN TABLE ARENA ================= */}
-      <main className="relative flex-1 w-full max-w-6xl mx-auto px-1 sm:px-4 flex flex-col justify-between items-center z-10 min-h-0 overflow-hidden py-0.5">
+      <main className={`relative flex-1 w-full max-w-6xl mx-auto px-1 sm:px-4 flex flex-col justify-between items-center ${isBiddingPhase ? 'z-10 lg:z-30' : 'z-10'} min-h-0 overflow-hidden py-0.5`}>
         {/* TOP SEAT: Hriday (Partner of Aadesh, sitting directly across) */}
         <div className="w-full flex justify-center pt-0.5 flex-shrink-0">
           <PlayerSeat
@@ -536,7 +536,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
           </div>
 
           {/* CENTER ARENA: 13th Card Tabletop Bidding (until bids are done) or Center Trick (during play) */}
-          <div className="relative flex-1 flex items-center justify-center min-w-0 w-full z-30">
+          <div className="relative flex-1 flex items-center justify-center min-w-0 w-full z-30 lg:z-40">
             {isBiddingPhase ? (
               <TableBiddingCenter
                 trumpSuit={gameState.trumpSuit}
@@ -614,7 +614,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
 
       {/* ================= BOTTOM FAN HAND & AADESH SEAT (HUMAN PLAYER) ================= */}
       {/* Wide horizontal natural fan with Aadesh calligraphic nameplate centered directly beneath */}
-      <footer className="w-full max-w-full relative z-20 pb-0.5 sm:pb-1 flex flex-col items-center flex-shrink-0 overflow-x-clip">
+      <footer className={`w-full max-w-full relative ${isBiddingPhase ? 'z-20 lg:z-10' : 'z-20'} pb-0.5 sm:pb-1 flex flex-col items-center flex-shrink-0 overflow-x-clip`}>
         {/* Squeezable Hand Action Prompts: Appears as full banner, then squeezes to left icon button */}
         <SqueezableActionBanner
           type="skip"
