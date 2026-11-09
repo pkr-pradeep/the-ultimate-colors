@@ -5,7 +5,7 @@
 
 ## 1. Executive Summary
 
-In *The Universal Joker*, card play is authoritatively strategic. Because each hand features 13 tricks, two fixed partnerships, a 52-card modified deck (2♠ removed, 1 Dadaji Joker added), and strict scoring penalties for missed bids, indiscriminate or greedy card play is fatal.
+In *The Ultimate colors*, card play is authoritatively strategic. Because each hand features 13 tricks, two fixed partnerships, a 52-card modified deck (2♠ removed, 1 Dadaji Joker added), and strict scoring penalties for missed bids, indiscriminate or greedy card play is fatal.
 
 This document establishes the **Intelligent Rules Architecture** governing player decision-making, covering:
 1. **Card Memory & Void Tracking** (what every player remembers about played cards and opponent voids).
