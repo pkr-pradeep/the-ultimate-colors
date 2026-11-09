@@ -1,11 +1,11 @@
-# THE UNIVERSAL JOKER
+# The Ultimate colors
 ## Official Rulebook & Playbook
 *A 4-Player Custom Trick-Taking Partnership Card Game*
 
 ---
 
 ### SECTION 1: GAME OVERVIEW & PARAMETERS
-"The Universal Joker" is a highly tactical, low-scoring variant of traditional Spades played by 4 players in two fixed partnerships (partners sit directly across from each other). The game introduces a dynamically shifting trump suit determined by the deal, a high-stakes standalone Joker, and a punishing, precise scoring matrix.
+"The Ultimate colors" is a highly tactical, low-scoring variant of traditional Spades played by 4 players in two fixed partnerships (partners sit directly across from each other). The game introduces a dynamically shifting trump suit determined by the deal, a high-stakes standalone Joker, and a punishing, precise scoring matrix.
 
 #### 1.1 Match Boundaries & Winning Conditions
 Before the first shuffle, players must agree on how the overall match will end. The game offers three options:
@@ -99,7 +99,7 @@ The build config confirms this is a static React game, so the existing PWA is al
    npm install -D @capacitor/cli
    npx cap init
    ```
-   Enter **The Universal Joker** as the app name and a unique ID such as `com.yourname.universaljoker`.
+   Enter **The Ultimate colors** as the app name and a unique ID such as `com.yourname.universaljoker`.
 
 ##### 6.2.3 In the generated `capacitor.config.ts`, make sure `webDir` is set to `dist`. Then build and add Android:
    ```powershell
