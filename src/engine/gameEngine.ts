@@ -258,9 +258,9 @@ export function submitPlayerBid(
   }
 
   // All 4 players have submitted bids: validate both partnerships!
-  // Per Section 4.1: If both players of same team bid zero, default 2 is given as default bid.
-  // Reshuffle rule: If both team bids are not going 6 or more than 6, play won't happen; cards reshuffled.
-  const roundValidation = validateAllBids(bidsRecord, 'both_below_6', true);
+  // Reshuffle rule: Reshuffle will happen when summation of two team bids is not greater than or equal to six (sum < 6).
+  // Meaning if Team A bids 4, then for play to happen Team B must bid at least 2 (4 + 2 = 6).
+  const roundValidation = validateAllBids(bidsRecord, 'sum_below_6', true);
 
   const team1Effective = roundValidation.team1Validation.effectiveBid;
   const team2Effective = roundValidation.team2Validation.effectiveBid;

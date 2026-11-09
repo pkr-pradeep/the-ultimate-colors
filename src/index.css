@@ -93,3 +93,33 @@
 .animate-card-drop {
   animation: cardDropIn 0.25s cubic-bezier(0.2, 0.8, 0.35, 1) forwards;
 }
+
+@keyframes royalFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes royalPulseAura {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.06);
+  }
+}
+
+.animate-royal-float {
+  animation: royalFloat 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-royal-pulse {
+  animation: royalPulseAura 3.5s ease-in-out infinite;
+  will-change: opacity, transform;
+}

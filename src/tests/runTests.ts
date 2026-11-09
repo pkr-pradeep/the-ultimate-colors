@@ -751,23 +751,29 @@ export function runAllTests(): { passedCount: number; totalCount: number; result
     assert(Boolean(decision.tacticalTactic?.includes('Boston Interception')), 'Must annotate as Calculated Boston Interception');
   });
 
-  // ================= 6-BID THRESHOLD, SKIP ROUNDS & SHOW HAND TESTS (53-55) =================
-  test(53, 'Minimum 6-Bid Contract Threshold triggers automatic reshuffle when both team bids are below 6', () => {
-    // Both teams below 6 (e.g. 5 and 5) -> must trigger reshuffle
-    const bothBelow6 = checkReshuffleCondition(5, 5, 'both_below_6');
-    assert(bothBelow6.requiresReshuffle === true, 'Bids of 5 vs 5 must trigger reshuffle');
+  // ================= 6-BID SUMMATION THRESHOLD, SKIP ROUNDS & SHOW HAND TESTS (53-55) =================
+  test(53, 'Reshuffle rule: Reshuffle happens when summation of two team bids is not greater than or equal to 6', () => {
+    // Summation strictly below 6 (e.g. 2 vs 2 = 4, 2 vs 3 = 5, 4 vs 1 = 5) -> must trigger reshuffle
+    const sum4 = checkReshuffleCondition(2, 2, 'sum_below_6');
+    assert(sum4.requiresReshuffle === true, 'Bids of 2 vs 2 (sum 4) must trigger reshuffle');
 
-    // Both teams below 6 (e.g. 4 and 5) -> must trigger reshuffle
-    const lowBids = checkReshuffleCondition(4, 5, 'both_below_6');
-    assert(lowBids.requiresReshuffle === true, 'Bids of 4 vs 5 must trigger reshuffle');
+    const sum5 = checkReshuffleCondition(2, 3, 'sum_below_6');
+    assert(sum5.requiresReshuffle === true, 'Bids of 2 vs 3 (sum 5) must trigger reshuffle');
 
-    // One team reaches 6 or higher (e.g. Team 1 bids 5, Team 2 bids 6) -> valid! Play proceeds!
-    const validThreshold = checkReshuffleCondition(5, 6, 'both_below_6');
-    assert(validThreshold.requiresReshuffle === false, 'Bids of 5 vs 6 must NOT trigger reshuffle because Team 2 reached 6');
+    const sum41 = checkReshuffleCondition(4, 1, 'sum_below_6');
+    assert(sum41.requiresReshuffle === true, 'Bids of 4 vs 1 (sum 5) must trigger reshuffle');
 
-    // Both reach 6 or higher (e.g. 6 and 7) -> valid!
-    const highBids = checkReshuffleCondition(6, 7, 'both_below_6');
-    assert(highBids.requiresReshuffle === false, 'Bids of 6 vs 7 must NOT trigger reshuffle');
+    // Summation exactly 6: Team A bids 4, Team B bids 2 (4 + 2 = 6 >= 6) -> play proceeds!
+    const exact6 = checkReshuffleCondition(4, 2, 'sum_below_6');
+    assert(exact6.requiresReshuffle === false, 'Team A 4 and Team B 2 equals 6 >= 6: play proceeds without reshuffle');
+
+    // Summation 3 vs 3 (sum 6 >= 6) -> valid, play proceeds!
+    const valid33 = checkReshuffleCondition(3, 3, 'sum_below_6');
+    assert(valid33.requiresReshuffle === false, 'Bids of 3 vs 3 (sum 6) must NOT trigger reshuffle');
+
+    // Higher bids (e.g. 5 vs 5 = 10, 5 vs 6 = 11) -> valid!
+    const highBids = checkReshuffleCondition(5, 5, 'sum_below_6');
+    assert(highBids.requiresReshuffle === false, 'Bids of 5 vs 5 (sum 10 >= 6) must NOT trigger reshuffle');
   });
 
   test(54, 'Human player can skip remaining rounds once both team contracts are achieved', () => {

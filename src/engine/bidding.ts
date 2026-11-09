@@ -92,32 +92,30 @@ export function validatePartnershipBid(
  * Evaluates the Section 4.1 Reshuffle Condition:
  * "if summation of both team bids is above 5, then the cards will be reshuffled by next right."
  *
- * NOTE ON AMBIGUITY (Isolated Decision per Section 1 instructions):
- * If applied strictly as `summation > 5`, then no High Contracts (bids 10–13, Section 5.1) or Boston Sweeps (13, Section 5.3)
- * could ever be played because any contract >= 10 has a summation > 5.
- * In card games, such reshuffle clauses typically intend either:
- * - 'both_below_6': If both team bids are strictly below 6 (neither reaches 6+), cards are reshuffled.
- * - 'strict_playbook_above_5': Exactly as written (sum > 5 triggers reshuffle by next right).
- * - 'low_bid_below_5': The common rule where if table total bids is < 5 (e.g. 2 + 2 = 4), cards are reshuffled.
- * - 'disabled': Allows play regardless of bid totals without redeals.
+/**
+ * Rule on Bidding Reshuffle:
+ * Reshuffle will happen when summation of two team bids is not greater than or equal to six (sum < 6).
+ * Meaning: If Team A bids 4, then for play to happen Team B must bid at least 2 (4 + 2 = 6).
+ * If the sum is strictly below 6 (e.g. 2 + 2 = 4 or 2 + 3 = 5), play will not happen; cards are reshuffled!
  */
-export type ReshuffleMode = 'both_below_6' | 'strict_playbook_above_5' | 'low_bid_below_5' | 'disabled';
+export type ReshuffleMode = 'sum_below_6' | 'both_below_6' | 'strict_playbook_above_5' | 'low_bid_below_5' | 'disabled';
 
 export function checkReshuffleCondition(
   team1EffectiveBid: number,
   team2EffectiveBid: number,
-  mode: ReshuffleMode = 'both_below_6'
+  mode: ReshuffleMode = 'sum_below_6'
 ): { requiresReshuffle: boolean; reason?: string } {
   const sum = team1EffectiveBid + team2EffectiveBid;
 
-  if (mode === 'both_below_6') {
-    // Both team bids are not going 6 or more than 6 -> play won't happen, reshuffle cards
-    if (team1EffectiveBid < 6 && team2EffectiveBid < 6) {
+  if (mode === 'sum_below_6' || mode === 'both_below_6') {
+    // Reshuffle happens when summation of two team bids is not greater than or equal to six (sum < 6)
+    if (sum < 6) {
       return {
         requiresReshuffle: true,
-        reason: `Neither team reached a contract of 6 or more (Team 1 bid ${team1EffectiveBid}, Team 2 bid ${team2EffectiveBid}). Per minimum 6-bid threshold rule, cards are reshuffled!`,
+        reason: `Summation of both team bids is ${sum} (Team 1: ${team1EffectiveBid}, Team 2: ${team2EffectiveBid}), which is not greater than or equal to 6. Per rule, cards are reshuffled!`,
       };
     }
+    return { requiresReshuffle: false };
   } else if (mode === 'strict_playbook_above_5') {
     if (sum > 5) {
       return {
@@ -142,7 +140,7 @@ export function checkReshuffleCondition(
  */
 export function validateAllBids(
   bids: Record<PlayerId, number | null>,
-  reshuffleMode: ReshuffleMode = 'both_below_6',
+  reshuffleMode: ReshuffleMode = 'sum_below_6',
   applyDefaultTwoForDoubleZero: boolean = false
 ): BiddingRoundValidation {
   // Check if any player hasn't bid
