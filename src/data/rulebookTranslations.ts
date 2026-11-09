@@ -20,7 +20,7 @@ export const RULEBOOK_TRANSLATIONS: Record<RulebookLanguage, RulebookContent> = 
   // ================= ENGLISH =================
   en: {
     headerBadge: 'Official Playbook',
-    title: 'THE UNIVERSAL JOKER',
+    title: 'THE ULTIMATE COLORS',
     subtitle: 'Official Rulebook & Playbook · 4-Player Custom Trick-Taking Partnership Card Game',
     jokerTitle: 'The Dadaji Universal Joker (ଜୋକର୍ / जोकर)',
     jokerDesc: 'Preserved in his imperial maroon-and-gold sherwani, white flowing beard, curled aristocratic moustache, and gold walking cane, Dadaji is the supreme authority on the table.',
