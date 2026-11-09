@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, GameSettings, MatchConfig, Partnership, PlayerId, Suit, TeamId } from '../types/game';
 import { SuitIcon } from './art/SuitIcon';
 import { SUIT_NAMES, MULTILINGUAL_SUIT_NAMES } from '../engine/deck';
-import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X, HelpCircle, ChevronDown } from 'lucide-react';
+import { Volume2, VolumeX, BookOpen, Trophy, RotateCcw, Clock, Settings, CheckCheck, MoreVertical, X, HelpCircle, ChevronDown, Home } from 'lucide-react';
 
 interface TableControlsProps {
   handNumber: number;
@@ -28,6 +28,7 @@ interface TableControlsProps {
   onInspectTrump: () => void;
   onOpenTactics?: () => void;
   onOpenWalkthrough?: () => void;
+  onReturnHome?: () => void;
 }
 
 export const TableControls = React.memo<TableControlsProps>(({
@@ -53,6 +54,7 @@ export const TableControls = React.memo<TableControlsProps>(({
   onInspectTrump,
   onOpenTactics,
   onOpenWalkthrough,
+  onReturnHome,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopMenuOpen, setIsDesktopMenuOpen] = useState(false);
@@ -91,9 +93,20 @@ export const TableControls = React.memo<TableControlsProps>(({
       <div className="hidden sm:flex items-center justify-between gap-2 md:gap-3 flex-nowrap w-full">
         {/* LEFT: Royal Brand Crest, Hand Counter, Dealer Meta */}
         <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 via-amber-600 to-amber-800 border border-amber-300/80 flex items-center justify-center shadow-md flex-shrink-0">
-            <span className="text-sm">🃏</span>
-          </div>
+          {onReturnHome ? (
+            <button
+              type="button"
+              onClick={onReturnHome}
+              title="Return to Welcome Screen"
+              className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 via-amber-600 to-amber-800 border border-amber-300/80 flex items-center justify-center shadow-md flex-shrink-0 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+            >
+              <Home size={15} className="text-amber-100 group-hover:text-white" />
+            </button>
+          ) : (
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 via-amber-600 to-amber-800 border border-amber-300/80 flex items-center justify-center shadow-md flex-shrink-0">
+              <span className="text-sm">🃏</span>
+            </div>
+          )}
           <div className="leading-tight">
             <h1 className="font-cinzel text-xs sm:text-sm lg:text-base font-black text-amber-100 tracking-wider">
               The Ultimate Colors
@@ -370,6 +383,21 @@ export const TableControls = React.memo<TableControlsProps>(({
                 {/* Divider */}
                 <div className="h-[1px] bg-amber-800/40 my-1" />
 
+                {/* Return to Start / Welcome Screen */}
+                {onReturnHome && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDesktopMenuOpen(false);
+                      onReturnHome();
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-amber-900/40 text-amber-300 hover:text-amber-100 text-left transition-colors text-xs font-cinzel cursor-pointer"
+                  >
+                    <Home size={14} className="text-amber-400" />
+                    <span className="font-bold">Start Page / Welcome</span>
+                  </button>
+                )}
+
                 {/* Redeal Current Hand */}
                 <button
                   type="button"
@@ -393,7 +421,18 @@ export const TableControls = React.memo<TableControlsProps>(({
         {/* Mobile Row 1: Logo, Title, Live Scores, and Action Buttons */}
         <div className="flex items-center justify-between gap-1 w-full">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-base flex-shrink-0">🃏</span>
+            {onReturnHome ? (
+              <button
+                type="button"
+                onClick={onReturnHome}
+                title="Return to Welcome Screen"
+                className="w-7 h-7 rounded-lg bg-amber-950 border border-amber-600/70 text-amber-300 flex items-center justify-center flex-shrink-0 cursor-pointer"
+              >
+                <Home size={14} />
+              </button>
+            ) : (
+              <span className="text-base flex-shrink-0">🃏</span>
+            )}
             <div className="truncate">
               <span className="font-cinzel text-xs font-black text-amber-200 tracking-wide block truncate">
                 The Ultimate Colors
@@ -556,6 +595,20 @@ export const TableControls = React.memo<TableControlsProps>(({
               <RotateCcw size={13} />
               <span>Redeal Hand</span>
             </button>
+
+            {onReturnHome && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onReturnHome();
+                }}
+                className="px-2.5 py-1.5 rounded-lg bg-neutral-900 text-amber-300 border border-amber-700/50 flex items-center gap-1 text-[11px] cursor-pointer"
+              >
+                <Home size={13} />
+                <span>Start Page</span>
+              </button>
+            )}
 
             <button
               type="button"

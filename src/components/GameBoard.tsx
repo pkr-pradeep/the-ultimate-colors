@@ -36,7 +36,11 @@ import { SqueezableActionBanner } from './SqueezableActionBanner';
 import { checkIsFirstTimeUser, RulebookLanguage, getSavedRulebookLanguage, saveRulebookLanguage } from '../utils/firstTimeUser';
 import { AIIntelligenceLevel } from '../types/game';
 
-export const GameBoard: React.FC = () => {
+export interface GameBoardProps {
+  onReturnHome?: () => void;
+}
+
+export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
   const [gameState, setGameState] = useState<GameState>(() => {
     const initial = initializeMatch({
       mode: 'default_points',
@@ -502,6 +506,7 @@ export const GameBoard: React.FC = () => {
         onOpenWalkthrough={() => setIsWalkthroughOpen(true)}
         onRestartHand={handleRedealHand}
         onInspectTrump={() => setIsTrumpInspectOpen(true)}
+        onReturnHome={onReturnHome}
       />
 
       {/* ================= MAIN TABLE ARENA ================= */}
