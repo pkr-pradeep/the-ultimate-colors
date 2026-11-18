@@ -1,11 +1,11 @@
-# The Ultimate colors
+# The Ultimate Colors
 ## Official Rulebook & Playbook
 *A 4-Player Custom Trick-Taking Partnership Card Game*
 
 ---
 
 ### SECTION 1: GAME OVERVIEW & PARAMETERS
-"The Ultimate colors" is a highly tactical, low-scoring variant of traditional Spades played by 4 players in two fixed partnerships (partners sit directly across from each other). The game introduces a dynamically shifting trump suit determined by the deal, a high-stakes standalone Joker, and a punishing, precise scoring matrix.
+"The Ultimate Colors" is a highly tactical, low-scoring variant of traditional Spades played by 4 players in two fixed partnerships (partners sit directly across from each other). The game introduces a dynamically shifting trump suit determined by the deal, a high-stakes standalone Joker, and a punishing, precise scoring matrix.
 
 #### 1.1 Match Boundaries & Winning Conditions
 Before the first shuffle, players must agree on how the overall match will end. The game offers three options:
@@ -51,64 +51,54 @@ Under standard gameplay conditions, the Joker outranks every card in the deck, s
 ### SECTION 4: BIDDING & GAMEPLAY FLOW
 #### 4.1 Minimum Bidding & Bidding Restrictions
 * Bidding proceeds counter-clockwise, beginning with the player to the right of the dealer.
-* **No Nil Bids:** A team is strictly prohibited from bidding 0 (Nil) or 1 trick. But a player can bid zero. if both the player of same team bid zero then by default 2 would be given to the team as default bid. if summation of both team bids is above 5, then the cards will be reshuffled by next right.
-* **Minimum Team Contract:** The absolute minimum combined bid a partnership can make is **2 tricks**. 
+* **No Nil Team Bids:** A partnership is strictly prohibited from bidding 0 (Nil) or 1 trick combined. An individual player can bid 0 as long as their partner bids at least 2. If both players on a team bid below 2 combined, the team bid must be revised to meet the 2-trick minimum.
+* **Minimum Team Contract:** The absolute minimum combined bid a partnership can make is **2 tricks**.
+* **6-Bid Reshuffle Rule:** If the combined summation of both teams' bids is less than 6 (`Team 1 Bid + Team 2 Bid < 6`), play does not proceed and the cards are reshuffled and dealt by the next dealer counter-clockwise.
 
 #### 4.2 Play Mechanics
-* Players must follow the suit that was led if they possess it. 
+* Players must follow the suit that was led if they possess it.
 * If a player is void in the led suit, they may discard an off-suit card or play a card from the Highest Suit (or the Joker) to attempt to seize the trick.
 * The highest card of the led suit wins the trick, unless cut by a higher card of the designated trump suit or the Joker. The winner of a trick leads the next round.
 
 ---
 
 ### SECTION 5: THE PRECISION SCORING MATRIX
-Points are awarded on a raw point-for-trick basis. The traditional multiplication of scores by 10 is completely eliminated. 
+Points are awarded on a raw point-for-trick basis. The traditional multiplication of scores by 10 is completely eliminated.
 
 #### 5.1 Successful Contracts (Making the Bid)
 * **Standard Contracts (Bids 2 through 9):** If a team meets or exceeds their combined partnership bid, they score **exactly the number of points they bid**. Extra tricks won (overtricks) grant no additional points. (e.g., bidding 5 and winning 7 tricks rewards exactly **+5 points**).
 * **High Contracts (Bids 10 through 13):** If a team successfully bids 10 or more tricks and meets their goal, their reward is **doubled**. (e.g., bidding 10 and winning 11 rewards exactly **+20 points**).
 
 #### 5.2 Failed Contracts (Going Set)
-* If a team fails to meet their combined partnership bid, they do not suffer a double penalty. The exact number of points they bid is **substracted** from their overall score. (e.g., bidding 5 and winning 4 results in **-5 points**; bidding 10 and winning 9 results in **-10 points**).
+* If a team fails to meet their combined partnership bid, they do not suffer a double penalty. The exact number of points they bid is **subtracted** from their overall score. (e.g., bidding 5 and winning 4 results in **-5 points**; bidding 10 and winning 9 results in **-10 points**).
 
 #### 5.3 The 13-Trick "Boston" Sweep
 * If a team manages to successfully capture **all 13 tricks** in a single hand, their score is **automatically doubled**, regardless of what they originally bid.
 * **The Math Breakdown:** If a team bids 13 and captures all 13 tricks, they get the High Contract double (26 points) which becomes the baseline, resulting in **+26 points**.
 * **The Opponent Deficit:** If one team takes all 13 tricks, the opposing team automatically takes 0 tricks. Because the opposing team's minimum required bid was 2, they failed their contract and are penalized exactly their bid (e.g., **-2 points**).
 
-### SECTION 6: Andriod support
-#### 6.1 This folder is a React + Vite web app with PWA support, not a Python project, and it doesn’t currently include Capacitor/Android project files. I’m checking the build config and runtime dependencies now; that determines whether it can be packaged as a self-contained APK or needs network/API setup too.
+---
 
+### SECTION 6: ANDROID APK BUILD (CAPACITOR)
 
-The build config confirms this is a static React game, so the existing PWA is already the lightest installable route. For a distributable `.apk`, Capacitor can wrap the Vite `dist` output without rewriting the game; I’m checking one small network-dependent startup helper before I call out any caveats.
+This React + Vite web application can be packaged into an Android APK using Capacitor (`capacitor.config.ts` is already configured with `webDir: 'dist'`).
 
-
-
-`the-ultimate-colors` isn’t Python: it’s a React + Vite app, and I found no `.py` files in that folder. The simplest way to make this app into an Android APK is to package its existing web build with Capacitor; there’s no need to rewrite the game.
-
-#### 6.2 From PowerShell:
-
-##### 6.2.1. Install Android Studio and its Android SDK, then open the project folder:
-   ```powershell
-   cd C:\devl\the-ultimate-colors
-   ```
-
-##### 6.2.2 Add Capacitor:
-   ```powershell
+1. **Install Capacitor & Initialize Android (one-time setup):**
+   ```bash
    npm install @capacitor/core @capacitor/android
    npm install -D @capacitor/cli
-   npx cap init
-   ```
-   Enter **The Ultimate colors** as the app name and a unique ID such as `com.yourname.universaljoker`.
-
-##### 6.2.3 In the generated `capacitor.config.ts`, make sure `webDir` is set to `dist`. Then build and add Android:
-   ```powershell
-   npm run build
    npx cap add android
-   npx cap sync android
-   npx cap open android
    ```
 
-4. In Android Studio, use **Build > Build Bundle(s) / APK(s) > Build APK(s)**. The debug APK will be under `android\app\build\outputs\apk\debug\app-debug.apk`. For distribution, generate a signed release APK from Android Studio.
+2. **Build & Sync Web Assets to Android:**
+   ```bash
+   npm run build
+   npx cap sync android
+   ```
 
-When you change the app later, run `npm run build` and `npx cap sync android` again before rebuilding. This app also already supports PWA installation: deploy it over HTTPS and install it from Chrome, if you don’t specifically need an APK.
+3. **Generate APK:**
+   - Open in Android Studio via `npx cap open android` and select **Build > Build Bundle(s) / APK(s) > Build APK(s)**, or build via Gradle:
+   ```bash
+   cd android && ./gradlew app:assembleDebug
+   ```
+   The debug APK is generated at `android/app/build/outputs/apk/debug/app-debug.apk`.

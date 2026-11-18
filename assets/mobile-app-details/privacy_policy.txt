@@ -1,0 +1,58 @@
+PRIVACY POLICY FOR THE ULTIMATE COLORS
+Last Updated: November 10, 2026
+
+1. INTRODUCTION
+This Privacy Policy applies to the mobile application "The Ultimate Colors" (referred to as "the Game", "the App", "we", "us", or "our"), developed and published by PKR Studies.
+
+We respect your privacy and are committed to protecting it. This Privacy Policy outlines our practices regarding data collection, usage, and disclosure when you use our application.
+
+2. SUMMARY
+• The Ultimate Colors is a 100% offline, single-player card game against on-device computer opponents.
+• We DO NOT collect, store, transmit, or share any Personally Identifiable Information (PII).
+• The app contains NO third-party advertisements, NO analytics tracking SDKs, and NO behavioral trackers.
+• All gameplay state and user preferences remain strictly on your personal device.
+
+3. INFORMATION COLLECTION AND USE
+a. Personal Data:
+We do not require you to create an account, register, or provide any personal details (such as your name, email address, phone number, location, or financial information) to play the game.
+
+b. Device & Usage Data:
+The application does not collect device identifiers (such as IMEI, Android Advertising ID, MAC address), hardware configurations, IP addresses, or network details.
+
+c. Local Storage (On-Device Only):
+The game uses your device's local storage (such as HTML5 localStorage or app-private storage) solely to preserve your in-game preferences across sessions. This includes:
+- Selected interface language (English, Hindi, or Odia)
+- Audio and sound effect toggle (Muted / Unmuted)
+- Current match configuration and score state
+This information never leaves your device and is not accessible to us or any external parties. You may reset this data at any time by clearing the application data in your device settings or uninstalling the app.
+
+4. DEVICE PERMISSIONS
+The Ultimate Colors requires NO sensitive device permissions to operate:
+• NO access to Camera
+• NO access to Microphone
+• NO access to Contacts or Accounts
+• NO access to Precise or Approximate Location (GPS/Network)
+• NO access to Photos, Media, or External Storage
+• NO access to Phone State or Call Logs
+
+5. THIRD-PARTY SERVICES & ADVERTISING
+• Advertising: The Game does not display third-party advertisements or banners.
+• Analytics: The Game does not include third-party tracking or behavioral analytics tools (e.g., Google Analytics, Firebase Analytics, Facebook Pixel, etc.).
+• Links: The application does not contain external web links or external data-harvesting portals.
+
+6. CHILDREN'S PRIVACY (COPPA COMPLIANCE)
+The Ultimate Colors is designed as a family-friendly card game suitable for all ages. We do not knowingly collect any personal information from children under the age of 13 (or under the applicable age of digital consent in your jurisdiction), in strict compliance with the Children's Online Privacy Protection Act (COPPA) and the Google Play Families Policy.
+
+7. DATA SECURITY
+Because the application does not transmit or store your personal information on external servers or cloud databases, your data is inherently protected against external server breaches, unauthorized interception, or data mining.
+
+8. CHANGES TO THIS PRIVACY POLICY
+We may periodically update this Privacy Policy to reflect app enhancements or legal requirements. Any modifications will be updated within this document with an updated "Last Updated" date. Continued use of the application after changes implies acceptance of the updated policy.
+
+9. CONTACT US
+If you have any questions, feedback, or concerns regarding this Privacy Policy or our privacy practices, please contact us at:
+
+Developer: PKR Studies
+Email: pkrislive@gmail.com
+Application: The Ultimate Colors
+Package ID: com.pkrstudies.theultimatecolors

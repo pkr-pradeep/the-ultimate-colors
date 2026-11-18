@@ -225,11 +225,11 @@ Step 1: Check Current Trick State
 ## 9. Advanced Table Governance & Contract Acceleration Rules
 
 ### 9.1. Minimum 6-Bid Threshold & Automatic Reshuffle
-* **Rule:** If both team bids fail to reach 6 or more (i.e. `team1EffectiveBid < 6 && team2EffectiveBid < 6`), play will **not** happen.
+* **Rule:** If the combined summation of both team bids is less than 6 (i.e. `team1EffectiveBid + team2EffectiveBid < 6`), play will **not** happen.
 * **Mechanism:** The hand is immediately declared void without score penalties. Cards are automatically gathered, reshuffled, and dealt by the next dealer counter-clockwise.
 * **Example:**
-  - Team 1 bids 5, Team 2 bids 5 $\rightarrow$ Both below 6 $\rightarrow$ **Reshuffle triggered!**
-  - Team 1 bids 5, Team 2 bids 6 $\rightarrow$ Team 2 reached 6 $\rightarrow$ **Play proceeds!**
+  - Team 1 bids 2, Team 2 bids 3 ($\text{Sum} = 5 < 6$) $\rightarrow$ **Reshuffle triggered!**
+  - Team 1 bids 4, Team 2 bids 2 ($\text{Sum} = 6 \ge 6$) $\rightarrow$ **Play proceeds!**
 
 ### 9.2. Early Round Skip Once Both Contracts Achieved (User Privilege)
 * **Rule:** Once both teams have fulfilled their respective contracts (e.g. Team 1 bid 5 has won $\ge 5$ tricks, Team 2 bid 6 has won $\ge 6$ tricks), players do not have to play all remaining tricks out of 13.
