@@ -37,8 +37,14 @@ import {
   submitPlayerBid,
   executeCardPlay,
   resolveCompletedTrick,
+  advanceToNextHand,
   skipRemainingTricks,
   claimShowHand,
+  evaluateContractOutcomes,
+  confirmPlayAgain,
+  exitCompletedMatch,
+  buildEarlyTerminationNotification,
+  EARLY_TERMINATION_NOTIFICATION_DURATION_MS,
 } from '../engine/gameEngine';
 import { evaluateShowHand, verifyUserSelectedCards } from '../engine/showHand';
 import { RULEBOOK_TRANSLATIONS } from '../data/rulebookTranslations';
@@ -1041,13 +1047,778 @@ export function runAllTests(): { passedCount: number; totalCount: number; result
     );
   });
 
+  // ================= EARLY TERMINATION, SCORING & MATCH CONFIRMATION TESTS (62-87) =================
+  const makeCard = (suit: Suit, rank: Card['rank'], value: number): Card => ({
+    id: `${suit}_${rank}`,
+    suit,
+    rank,
+    value,
+    cardType: 'standard',
+    isDadajiJoker: false,
+    name: `${rank} of ${suit}`,
+    shortName: `${rank}${suit[0].toUpperCase()}`,
+  });
+
+  const buildCompletedTrickState = (params: {
+    trickNumber: number;
+    team1Bid: number;
+    team1TricksBefore: number;
+    team2Bid: number;
+    team2TricksBefore: number;
+    winnerId: PlayerId;
+    team1MatchScore?: number;
+    team2MatchScore?: number;
+    targetPoints?: number;
+    dealer?: PlayerId;
+    handNumber?: number;
+  }) => {
+    let state = initializeMatch({
+      mode: 'custom_points',
+      targetPoints: params.targetPoints ?? 100,
+      durationSeconds: 1800,
+    });
+    state = startHand(state);
+
+    const trick: TrickCard[] = [
+      { playerId: 'south', card: makeCard('clubs', '4', 4), timestamp: 1 },
+      { playerId: 'east', card: makeCard('clubs', '5', 5), timestamp: 2 },
+      { playerId: 'north', card: makeCard('clubs', '6', 6), timestamp: 3 },
+      { playerId: 'west', card: makeCard('clubs', '7', 7), timestamp: 4 },
+    ];
+    // Ensure winnerId plays highest card (Ace of Clubs)
+    const winnerIndex = trick.findIndex(t => t.playerId === params.winnerId);
+    trick[winnerIndex] = { playerId: params.winnerId, card: makeCard('clubs', 'A', 14), timestamp: 5 };
+
+    return {
+      ...state,
+      handNumber: params.handNumber ?? state.handNumber,
+      dealer: params.dealer ?? state.dealer,
+      trumpSuit: 'spades' as Suit,
+      isJokerRevealHand: false,
+      phase: 'trick_completed' as const,
+      trickNumber: params.trickNumber,
+      leadPlayer: 'south' as PlayerId,
+      lastTrickWinner: params.winnerId,
+      currentTrick: trick,
+      partnerships: {
+        team1: {
+          ...state.partnerships.team1,
+          totalBid: params.team1Bid,
+          tricksWon: params.team1TricksBefore,
+          matchScore: params.team1MatchScore ?? 0,
+        },
+        team2: {
+          ...state.partnerships.team2,
+          totalBid: params.team2Bid,
+          tricksWon: params.team2TricksBefore,
+          matchScore: params.team2MatchScore ?? 0,
+        },
+      },
+    };
+  };
+
+  test(62, 'Early termination: Both teams successfully fulfil their bids', () => {
+    const evalRes = evaluateContractOutcomes(5, 5, 5, 5, 10);
+    assert(evalRes.bothSucceeded === true, 'Both teams winning their 5-bids after 10 tricks must set bothSucceeded');
+    assert(evalRes.bothOutcomesDetermined === true, 'Both outcomes must be determined');
+    assert(evalRes.shouldTerminateOnFailure === false, 'Successful contracts must preserve skip flow instead of failure termination');
+
+    let state = initializeMatch();
+    state = startHand(state);
+    state = {
+      ...state,
+      phase: 'playing',
+      trickNumber: 11,
+      partnerships: {
+        team1: { ...state.partnerships.team1, totalBid: 5, tricksWon: 5, matchScore: 0 },
+        team2: { ...state.partnerships.team2, totalBid: 5, tricksWon: 5, matchScore: 0 },
+      },
+    };
+    const skipped = skipRemainingTricks(state);
+    assert(skipped.phase === 'round_summary', 'Existing skipRemainingTricks must terminate hand cleanly');
+    assert(skipped.partnerships.team1.matchScore === 5, 'Team 1 must receive +5');
+    assert(skipped.partnerships.team2.matchScore === 5, 'Team 2 must receive +5');
+  });
+
+  test(63, 'Early termination: Only Team A fails while Team B remains capable -> continues playing', () => {
+    // After 7 tricks, 6 remain. Team A bid 7 won 0 (max 6 < 7 -> failed). Team B bid 8 won 7 (max 13 >= 8 -> achievable).
+    const state = buildCompletedTrickState({
+      trickNumber: 7,
+      team1Bid: 7,
+      team1TricksBefore: 0,
+      team2Bid: 8,
+      team2TricksBefore: 6,
+      winnerId: 'east', // Team 2 wins trick 7 -> Team 1: 0/7, Team 2: 7/8
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'playing', `Expected phase 'playing' when Team B can still succeed, got ${next.phase}`);
+    assert(next.trickNumber === 8, `Expected trickNumber 8, got ${next.trickNumber}`);
+    assert(next.partnerships.team1.matchScore === 0, 'Must not score prematurely while Team B is still achievable');
+  });
+
+  test(64, 'Early termination: Only Team B fails while Team A remains capable -> continues playing (Scenario A)', () => {
+    // Scenario A: Team A bid 8, Team B bid 7. After 7 tricks: Team A won 7, Team B won 0, 6 remain.
+    const state = buildCompletedTrickState({
+      trickNumber: 7,
+      team1Bid: 8,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 0,
+      winnerId: 'south', // Team 1 wins trick 7 -> Team 1: 7/8, Team 2: 0/7
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'playing', `Expected phase 'playing' when Team A can still reach 8, got ${next.phase}`);
+    assert(next.trickNumber === 8, `Expected trickNumber 8, got ${next.trickNumber}`);
+    assert(next.partnerships.team1.tricksWon === 7, 'Team 1 tricksWon must be 7');
+    assert(next.partnerships.team2.tricksWon === 0, 'Team 2 tricksWon must be 0');
+  });
+
+  test(65, 'Early termination: Both teams fail before Trick 13 -> terminates immediately', () => {
+    // Team A bid 8, Team B bid 7. After trick 12 (1 remaining): Team A has 6, Team B wins trick 12 -> 6.
+    // Max possible with 1 remaining: Team A = 7 < 8 (failed), Team B = 7... wait use 8 & 8 or trick 12 with 6 & 5.
+    // Team A bid 8 won 6, Team B bid 7 won 6? No, 6+6=12! Team A max = 6+1 = 7 < 8 (fails); Team B max = 6+1 = 7 >= 7 (still achievable!).
+    // With Team A bid 8, Team B bid 8: after 12 tricks (6 & 6, 1 remaining), max is 7 < 8 for both -> BOTH FAIL!
+    const state = buildCompletedTrickState({
+      trickNumber: 12,
+      team1Bid: 8,
+      team1TricksBefore: 6,
+      team2Bid: 8,
+      team2TricksBefore: 5,
+      winnerId: 'east', // Team 2 reaches 6; Team 1 has 6; remaining = 1 -> both max 7 < 8
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', `Expected immediate termination ('round_summary'), got ${next.phase}`);
+    assert(next.trickHistory.length === 1, 'Only played tricks recorded; Trick 13 must not be played');
+    assert(next.partnerships.team1.matchScore === -8, `Expected Team 1 score -8, got ${next.partnerships.team1.matchScore}`);
+    assert(next.partnerships.team2.matchScore === -8, `Expected Team 2 score -8, got ${next.partnerships.team2.matchScore}`);
+  });
+
+  test(66, 'Early termination: Team A succeeds and Team B fails before Trick 13 -> terminates immediately', () => {
+    // Team A bid 8, Team B bid 7. After Trick 11 (2 remaining): Team A has 8 (succeeded), Team B has 3 (max 5 < 7, failed).
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 8,
+      team1TricksBefore: 7,
+      team2Bid: 7,
+      team2TricksBefore: 3,
+      winnerId: 'south', // Team 1 reaches 8/8; Team 2 at 3/7 with 2 left (max 5 < 7)
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', `Expected immediate termination, got ${next.phase}`);
+    assert(next.partnerships.team1.matchScore === 8, `Expected Team 1 +8, got ${next.partnerships.team1.matchScore}`);
+    assert(next.partnerships.team2.matchScore === -7, `Expected Team 2 -7, got ${next.partnerships.team2.matchScore}`);
+  });
+
+  test(67, 'Early termination: Team B succeeds and Team A fails before Trick 13 -> terminates immediately', () => {
+    // Team A bid 7, Team B bid 8. After Trick 11 (2 remaining): Team A has 3 (max 5 < 7, failed), Team B has 8 (succeeded).
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 7,
+      team1TricksBefore: 3,
+      team2Bid: 8,
+      team2TricksBefore: 7,
+      winnerId: 'west', // Team 2 reaches 8/8; Team 1 at 3/7 with 2 left (max 5 < 7)
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', `Expected immediate termination, got ${next.phase}`);
+    assert(next.partnerships.team1.matchScore === -7, `Expected Team 1 -7, got ${next.partnerships.team1.matchScore}`);
+    assert(next.partnerships.team2.matchScore === 8, `Expected Team 2 +8, got ${next.partnerships.team2.matchScore}`);
+  });
+
+  test(68, 'Early termination: One team succeeds while the other remains capable -> continues playing', () => {
+    // Team A bid 5 won 5 (succeeded); Team B bid 6 won 4 after Trick 9 (4 remaining -> max 8 >= 6, achievable).
+    const state = buildCompletedTrickState({
+      trickNumber: 9,
+      team1Bid: 5,
+      team1TricksBefore: 4,
+      team2Bid: 6,
+      team2TricksBefore: 4,
+      winnerId: 'south',
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'playing', 'Must continue playing while Team B can still reach its contract');
+    assert(next.trickNumber === 10, `Expected trick 10, got ${next.trickNumber}`);
+  });
+
+  test(69, 'Early termination: Both teams remain capable -> continues playing', () => {
+    // Team A bid 6 won 3; Team B bid 6 won 3 after Trick 6 (7 remaining).
+    const state = buildCompletedTrickState({
+      trickNumber: 6,
+      team1Bid: 6,
+      team1TricksBefore: 2,
+      team2Bid: 6,
+      team2TricksBefore: 3,
+      winnerId: 'north',
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'playing', 'Must continue playing when both contracts remain achievable');
+    assert(next.trickNumber === 7, `Expected trick 7, got ${next.trickNumber}`);
+  });
+
+  test(70, 'Early termination: Failure detected on the final trick (Trick 13, 0 remaining)', () => {
+    // Scenario B on Trick 13: Team A bid 8 won 7, Team B bid 7 won 6 -> both fail at Trick 13
+    const state = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 8,
+      team1TricksBefore: 7,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east', // Team 2 finishes with 6/7, Team 1 has 7/8
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', 'Hand must finish on Trick 13');
+    assert(next.partnerships.team1.matchScore === -8, `Expected Team 1 -8, got ${next.partnerships.team1.matchScore}`);
+    assert(next.partnerships.team2.matchScore === -7, `Expected Team 2 -7, got ${next.partnerships.team2.matchScore}`);
+  });
+
+  test(71, 'Early termination: Unplayed cards are NOT counted as tricks or hypothetical penalties', () => {
+    // Team A bid 6 won 6 by Trick 9; Team B bid 6 won 3 (4 remaining -> actually trick 11: 2 remaining, max 5 < 6).
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 6,
+      team1TricksBefore: 5,
+      team2Bid: 6,
+      team2TricksBefore: 3,
+      winnerId: 'south', // Team 1 finishes trick 11 at 6 tricks; Team 2 has 3 tricks (2 unplayed)
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', 'Hand must terminate early');
+    assert(next.partnerships.team1.tricksWon === 6, 'Team 1 tricksWon must reflect only actual tricks won (6)');
+    assert(next.partnerships.team2.tricksWon === 3, 'Team 2 tricksWon must reflect only actual tricks won (3), never unplayed cards');
+    assert(next.partnerships.team2.matchScore === -6, 'Penalty must be exactly -originalBid (-6), independent of remaining cards');
+  });
+
+  test(72, 'Scoring: Both teams fail -> both original bids subtracted independently', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 12,
+      team1Bid: 8,
+      team1TricksBefore: 5,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east', // Team 1: 5/8 (max 6), Team 2: 6/7 (Wait: max 7 >= 7 -> still achievable!)
+    });
+    // Adjust so Team 2 bid is 8 too or 6 tricks won -> let's test Trick 11 with bids 9 & 8 (6 won + 4 won)
+    const bothFailState = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 9,
+      team1TricksBefore: 6,
+      team2Bid: 8,
+      team2TricksBefore: 4,
+      winnerId: 'east', // Team 1: 6/9 (max 8 < 9), Team 2: 5/8 (max 7 < 8)
+      team1MatchScore: 25,
+      team2MatchScore: 18,
+    });
+    const next = resolveCompletedTrick(bothFailState);
+    assert(next.phase === 'round_summary', 'Hand must terminate when both teams fail');
+    assert(next.partnerships.team1.matchScore === 16, `Expected 25 - 9 = 16, got ${next.partnerships.team1.matchScore}`);
+    assert(next.partnerships.team2.matchScore === 10, `Expected 18 - 8 = 10, got ${next.partnerships.team2.matchScore}`);
+  });
+
+  test(73, 'Scoring: One team succeeds and the other team fails', () => {
+    const scores = calculateHandScores(8, 8, 7, 5);
+    assert(scores.team1.succeeded === true && scores.team1.scoreDelta === 8, 'Winning team bid 8 awards +8');
+    assert(scores.team2.succeeded === false && scores.team2.scoreDelta === -7, 'Failing team bid 7 subtracts -7');
+  });
+
+  test(74, 'Scoring: Standard contracts (bids 2 through 9) award exact original bid', () => {
+    for (let bid = 2; bid <= 9; bid++) {
+      const res = calculatePartnershipScore(bid, bid + 1);
+      assert(res.scoreDelta === bid, `Standard bid ${bid} must award exactly ${bid}, got ${res.scoreDelta}`);
+    }
+  });
+
+  test(75, 'Scoring: High contracts (bids 10 through 13) apply doubled reward', () => {
+    for (let bid = 10; bid <= 13; bid++) {
+      const res = calculatePartnershipScore(bid, bid);
+      assert(res.scoreDelta === bid * 2, `High contract bid ${bid} must award ${bid * 2}, got ${res.scoreDelta}`);
+    }
+  });
+
+  test(76, 'Scoring: Negative cumulative scores handled accurately', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 12,
+      team1Bid: 10,
+      team1TricksBefore: 7,
+      team2Bid: 6,
+      team2TricksBefore: 3,
+      winnerId: 'west', // Team 1: 7/10 (max 8 < 10), Team 2: 4/6 (max 5 < 6)
+      team1MatchScore: 4,
+      team2MatchScore: -3,
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.partnerships.team1.matchScore === -6, `Expected 4 - 10 = -6, got ${next.partnerships.team1.matchScore}`);
+    assert(next.partnerships.team2.matchScore === -9, `Expected -3 - 6 = -9, got ${next.partnerships.team2.matchScore}`);
+  });
+
+  test(77, 'Scoring: Boston scoring unchanged (awarded only when a team actually wins all 13 tricks)', () => {
+    const earlyNoBoston = calculatePartnershipScore(5, 11, true);
+    assert(earlyNoBoston.isBostonSweep === false, 'Winning fewer than 13 tricks must NOT trigger Boston');
+    assert(earlyNoBoston.scoreDelta === 5, 'Standard reward must apply without Boston bonus');
+
+    const realBoston = calculatePartnershipScore(5, 13, true);
+    assert(realBoston.isBostonSweep === true, 'Winning all 13 tricks must trigger Boston');
+    assert(realBoston.scoreDelta === 10, 'Boston sweep rule for bid 5 must double to 10');
+  });
+
+  test(78, 'Scoring: Scores are NOT applied twice if resolution runs again on a terminated hand', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 8,
+      team1TricksBefore: 7,
+      team2Bid: 7,
+      team2TricksBefore: 3,
+      winnerId: 'south',
+      team1MatchScore: 10,
+      team2MatchScore: 15,
+    });
+    const once = resolveCompletedTrick(state);
+    const twice = resolveCompletedTrick(once);
+    assert(twice.partnerships.team1.matchScore === once.partnerships.team1.matchScore, 'Re-resolving must not alter Team 1 score');
+    assert(twice.partnerships.team2.matchScore === once.partnerships.team2.matchScore, 'Re-resolving must not alter Team 2 score');
+    assert(twice.partnerships.team1.roundScoreHistory.length === 1, 'Round score history must contain exactly 1 entry');
+
+    let threwOnDoubleSkip = false;
+    try {
+      skipRemainingTricks(once);
+    } catch {
+      threwOnDoubleSkip = true;
+    }
+    assert(threwOnDoubleSkip, 'Calling skipRemainingTricks after hand termination must throw and never double-score');
+  });
+
+  test(79, 'Match lifecycle: Match-winning condition is checked after every completed hand', () => {
+    const midMatch = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 6,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east',
+      team1MatchScore: 93,
+      team2MatchScore: 40,
+      targetPoints: 100,
+    });
+    const stillPlaying = resolveCompletedTrick(midMatch);
+    assert(stillPlaying.partnerships.team1.matchScore === 99, 'Score updated to 99');
+    assert(stillPlaying.phase === 'round_summary' && !stillPlaying.matchWinner, 'Score 99 < 100 must NOT end match');
+
+    const finalHand = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 6,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east',
+      team1MatchScore: 95,
+      team2MatchScore: 40,
+      targetPoints: 100,
+    });
+    const wonMatch = resolveCompletedTrick(finalHand);
+    assert(wonMatch.partnerships.team1.matchScore === 101, 'Score updated to 101 >= 100');
+    assert(wonMatch.phase === 'match_completed', 'Match must transition to match_completed when target reached');
+    assert(wonMatch.matchWinner === 'team1', 'Team 1 must be declared matchWinner');
+  });
+
+  test(80, 'Match lifecycle: When no team wins, next hand starts cleanly via advanceToNextHand', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 8,
+      team1TricksBefore: 7,
+      team2Bid: 7,
+      team2TricksBefore: 3,
+      winnerId: 'south',
+      team1MatchScore: 20,
+      team2MatchScore: 15,
+      targetPoints: 100,
+      handNumber: 1,
+    });
+    const summary = resolveCompletedTrick(state);
+    assert(summary.phase === 'round_summary', 'Must enter round_summary when match is not yet won');
+
+    const nextHand = advanceToNextHand(summary);
+    assert(nextHand.handNumber === 2, `Expected handNumber 2, got ${nextHand.handNumber}`);
+    assert(nextHand.phase === 'bidding', `Expected phase 'bidding' after dealing new hand, got ${nextHand.phase}`);
+    for (const pid of ['south', 'east', 'north', 'west'] as PlayerId[]) {
+      assert(nextHand.players[pid].hand.length === 13, `Player ${pid} must receive 13 freshly dealt cards`);
+    }
+  });
+
+  test(81, 'Match lifecycle: Cumulative scores are preserved between hands', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 7,
+      team1TricksBefore: 7,
+      team2Bid: 6,
+      team2TricksBefore: 4,
+      winnerId: 'east',
+      team1MatchScore: 30,
+      team2MatchScore: 22,
+      targetPoints: 100,
+    });
+    const summary = resolveCompletedTrick(state);
+    const nextHand = advanceToNextHand(summary);
+    assert(nextHand.partnerships.team1.matchScore === 37, `Cumulative score 37 must be preserved, got ${nextHand.partnerships.team1.matchScore}`);
+    assert(nextHand.partnerships.team2.matchScore === 16, `Cumulative score 16 must be preserved, got ${nextHand.partnerships.team2.matchScore}`);
+    assert(nextHand.partnerships.team1.roundScoreHistory.length === 1, 'Prior round history must be preserved');
+  });
+
+  test(82, 'Match lifecycle: Dealer rotation remains counter-clockwise across consecutive hands', () => {
+    let state = initializeMatch();
+    state = { ...state, dealer: 'south' };
+    state = startHand(state);
+    state = { ...state, phase: 'round_summary', matchWinner: null };
+
+    const hand2 = advanceToNextHand(state);
+    assert(hand2.dealer === 'east', `After south, dealer must rotate to east, got ${hand2.dealer}`);
+
+    const hand3 = advanceToNextHand({ ...hand2, phase: 'round_summary', matchWinner: null });
+    assert(hand3.dealer === 'north', `After east, dealer must rotate to north, got ${hand3.dealer}`);
+
+    const hand4 = advanceToNextHand({ ...hand3, phase: 'round_summary', matchWinner: null });
+    assert(hand4.dealer === 'west', `After north, dealer must rotate to west, got ${hand4.dealer}`);
+
+    const hand5 = advanceToNextHand({ ...hand4, phase: 'round_summary', matchWinner: null });
+    assert(hand5.dealer === 'south', `After west, dealer must wrap around to south, got ${hand5.dealer}`);
+  });
+
+  test(83, 'Match lifecycle: Winning team triggers New Match Confirmation state and localized prompt', () => {
+    const finalHand = buildCompletedTrickState({
+      trickNumber: 12,
+      team1Bid: 10,
+      team1TricksBefore: 9,
+      team2Bid: 6,
+      team2TricksBefore: 2,
+      winnerId: 'north', // Team 1 wins trick 12 -> 10/10 (+20 pts), Team 2 at 2/6 (1 left, max 3 -> -6 pts)
+      team1MatchScore: 85,
+      team2MatchScore: 40,
+      targetPoints: 100,
+    });
+    const completed = resolveCompletedTrick(finalHand);
+    assert(completed.phase === 'match_completed', 'Match must reach match_completed');
+    assert(completed.matchWinner === 'team1', 'Winning team must be identified');
+    assert(
+      MODAL_TRANSLATIONS.en.scoreboard.rematchPrompt === 'Congratulations! Would you like to play another game?',
+      'Confirmation prompt must match exact specification'
+    );
+    assert(Boolean(MODAL_TRANSLATIONS.hi.scoreboard.rematchPrompt && MODAL_TRANSLATIONS.or.scoreboard.rematchPrompt), 'All languages must include rematch prompt');
+  });
+
+  test(84, 'Match lifecycle: Play Again (confirmPlayAgain) resets scores and initializes fresh match', () => {
+    const finalHand = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 6,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east',
+      team1MatchScore: 95,
+      team2MatchScore: 50,
+      targetPoints: 100,
+      handNumber: 4,
+    });
+    const completed = resolveCompletedTrick(finalHand);
+    assert(completed.phase === 'match_completed', 'Precondition: match completed');
+
+    const restarted = confirmPlayAgain(completed);
+    assert(restarted.phase === 'bidding', `New match must deal and enter bidding phase, got ${restarted.phase}`);
+    assert(restarted.handNumber === 1, `Hand number must reset to 1, got ${restarted.handNumber}`);
+    assert(restarted.matchWinner === null, 'matchWinner must reset to null');
+    assert(restarted.partnerships.team1.matchScore === 0, 'Team 1 score must reset to 0');
+    assert(restarted.partnerships.team2.matchScore === 0, 'Team 2 score must reset to 0');
+    assert(restarted.partnerships.team1.roundScoreHistory.length === 0, 'Team 1 round history must reset');
+    assert(restarted.partnerships.team2.roundScoreHistory.length === 0, 'Team 2 round history must reset');
+    assert(restarted.earlyTerminationReason === null, 'earlyTerminationReason must reset');
+  });
+
+  test(85, 'Match lifecycle: Exit Game (exitCompletedMatch) safely clears scores without starting a new match', () => {
+    const finalHand = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 6,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east',
+      team1MatchScore: 95,
+      team2MatchScore: 50,
+      targetPoints: 100,
+    });
+    const completed = resolveCompletedTrick(finalHand);
+    const exited = exitCompletedMatch(completed);
+
+    assert(exited.phase === 'idle', `Exit must leave state idle without dealing a match, got ${exited.phase}`);
+    assert(exited.matchWinner === null, 'matchWinner must be cleared');
+    assert(exited.partnerships.team1.matchScore === 0, 'Team 1 score must be cleared to 0');
+    assert(exited.partnerships.team2.matchScore === 0, 'Team 2 score must be cleared to 0');
+    assert(exited.players.south.hand.length === 0, 'Exit must not deal cards for another match');
+  });
+
+  test(86, 'Match lifecycle: AI bots and fixed partnerships automatically participate in new match', () => {
+    const finalHand = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 6,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east',
+      team1MatchScore: 95,
+      team2MatchScore: 50,
+      targetPoints: 100,
+    });
+    const completed = resolveCompletedTrick(finalHand);
+    const restarted = confirmPlayAgain(completed);
+
+    assert(restarted.players.south.isHuman === true && restarted.players.south.teamId === 'team1', 'Human player retained at south on team1');
+    assert(restarted.players.north.isHuman === false && restarted.players.north.teamId === 'team1', 'AI bot north retained on team1');
+    assert(restarted.players.east.isHuman === false && restarted.players.east.teamId === 'team2', 'AI bot east retained on team2');
+    assert(restarted.players.west.isHuman === false && restarted.players.west.teamId === 'team2', 'AI bot west retained on team2');
+
+    // AI bidder can immediately bid on turn in the new match without confirmation
+    const firstBidderId = restarted.biddingOrder[0];
+    assert(Boolean(firstBidderId), 'Bidding order must be populated immediately');
+    const afterFirstBid = submitPlayerBid(restarted, firstBidderId, 3);
+    assert(afterFirstBid.players[firstBidderId].bid === 3, 'First player in new match must be able to bid immediately');
+  });
+
+  test(87, 'Match lifecycle: Repeated Play Again triggers cannot initialize multiple matches', () => {
+    const finalHand = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 6,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east',
+      team1MatchScore: 95,
+      team2MatchScore: 50,
+      targetPoints: 100,
+    });
+    const completed = resolveCompletedTrick(finalHand);
+
+    const firstStart = confirmPlayAgain(completed);
+    const secondClick = confirmPlayAgain(firstStart);
+    assert(secondClick === firstStart, 'Subsequent Play Again call on already-started match must be a no-op returning identical state');
+    assert(secondClick.handNumber === 1 && secondClick.players.south.hand === firstStart.players.south.hand, 'Deal must remain untouched across duplicate clicks');
+  });
+
+  // ================= EARLY TERMINATION NOTIFICATION TESTS (88-97) =================
+  test(88, 'Early termination notification: Team A fails and Team B succeeds (Case B & Case D)', () => {
+    // Team B already fulfilled bid 5 (has 6), Team A bid 7 has 4 at Trick 10 (3 left -> 4+3=7 achievable);
+    // On Trick 11 (2 left), Team B wins 7th trick -> Team A max 6 < 7 (NOW failed!) -> Case B
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 7,
+      team1TricksBefore: 4,
+      team2Bid: 5,
+      team2TricksBefore: 6,
+      winnerId: 'west',
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', 'Hand must terminate early');
+    assert(Boolean(next.earlyTerminationNotification), 'Notification must be generated');
+    assert(next.earlyTerminationNotification!.caseType === 'team_a_failed', 'Must classify as team_a_failed');
+    assert(next.earlyTerminationNotification!.title === 'Team A cannot fulfil its bid!', 'Title must match Case B');
+    assert(
+      next.earlyTerminationNotification!.message === "Team B has secured enough tricks to make Team A's contract impossible.",
+      'Message must match Case B'
+    );
+    assert(next.earlyTerminationNotification!.team1TricksNeeded === 3, 'Team A needs 3 more tricks (7 - 4)');
+
+    // Chronological Case D: Team A already failed on Trick 7, then Team B fulfills its 8th trick on Trick 8
+    const notifD = buildEarlyTerminationNotification(7, 0, 8, 8, 8, 0, 7);
+    assert(notifD !== null && notifD.caseType === 'one_succeeded_one_failed', 'Must classify as one_succeeded_one_failed');
+    assert(notifD!.title === 'Contract outcome decided!', 'Title must match Case D');
+    assert(notifD!.message === 'Team B has fulfilled its bid. Team A cannot fulfil its contract.', 'Message must match Case D');
+  });
+
+  test(89, 'Early termination notification: Team B fails and Team A succeeds (Case A & Case D)', () => {
+    // Team A already fulfilled bid 5 (has 6), Team B bid 7 has 4 at Trick 10 (3 left -> achievable);
+    // On Trick 11 (2 left), Team A wins 7th trick -> Team B max 6 < 7 (NOW failed!) -> Case A
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 5,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 4,
+      winnerId: 'south',
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', 'Hand must terminate early');
+    assert(Boolean(next.earlyTerminationNotification), 'Notification must be generated');
+    assert(next.earlyTerminationNotification!.caseType === 'team_b_failed', 'Must classify as team_b_failed');
+    assert(next.earlyTerminationNotification!.title === 'Team B cannot fulfil its bid!', 'Title must match Case A');
+    assert(
+      next.earlyTerminationNotification!.message === "Team A has secured enough tricks to make Team B's contract impossible.",
+      'Message must match Case A'
+    );
+    assert(next.earlyTerminationNotification!.team2TricksNeeded === 3, 'Team B needs 3 more tricks (7 - 4)');
+
+    // Chronological Case D: Team B failed earlier, then Team A reaches its bid 8 on Trick 8
+    const notifD = buildEarlyTerminationNotification(8, 8, 7, 0, 8, 7, 0);
+    assert(notifD !== null && notifD.caseType === 'one_succeeded_one_failed', 'Must classify as one_succeeded_one_failed');
+    assert(notifD!.title === 'Contract outcome decided!', 'Title must match Case D');
+    assert(notifD!.message === 'Team A has fulfilled its bid. Team B cannot fulfil its contract.', 'Message must match Case D');
+  });
+
+  test(90, 'Early termination notification: Both teams fail (Case C)', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 12,
+      team1Bid: 8,
+      team1TricksBefore: 6,
+      team2Bid: 8,
+      team2TricksBefore: 5,
+      winnerId: 'east', // Team 1: 6/8, Team 2: 6/8, 1 remaining -> both fail
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'round_summary', 'Hand must terminate early');
+    assert(Boolean(next.earlyTerminationNotification), 'Notification must be generated');
+    assert(next.earlyTerminationNotification!.caseType === 'both_failed', 'Must classify as both_failed');
+    assert(next.earlyTerminationNotification!.title === 'Both teams have failed their bids!', 'Title must match Case C');
+    assert(
+      next.earlyTerminationNotification!.message === 'Neither team can fulfil its contract with the remaining tricks.',
+      'Message must match Case C'
+    );
+  });
+
+  test(91, 'Early termination notification: One team fails while other remains capable -> NO popup', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 7,
+      team1Bid: 8,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 0,
+      winnerId: 'south', // Team A: 7/8 (achievable), Team B: 0/7 (failed), 6 remaining
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'playing', 'Game must continue playing');
+    assert(!next.earlyTerminationNotification, 'Failure notification must NOT appear when other team can still succeed');
+  });
+
+  test(92, 'Early termination notification: Both teams succeed -> existing Skip button flow unchanged & NO failure popup', () => {
+    // At Trick 10, both teams reach 5/5 bids -> hand stays in playing so Skip banner shows, no failure popup
+    const state = buildCompletedTrickState({
+      trickNumber: 10,
+      team1Bid: 5,
+      team1TricksBefore: 4,
+      team2Bid: 5,
+      team2TricksBefore: 5,
+      winnerId: 'south',
+    });
+    const next = resolveCompletedTrick(state);
+    assert(next.phase === 'playing', 'Must stay in playing so existing Skip banner remains available');
+    assert(!next.earlyTerminationNotification, 'No failure notification when both teams succeed');
+
+    const skipped = skipRemainingTricks(next);
+    assert(skipped.phase === 'round_summary', 'Existing Skip flow still terminates cleanly');
+    assert(!skipped.earlyTerminationNotification, 'Skip flow must never emit a failure notification');
+  });
+
+  test(93, 'Early termination notification: Payload contains accurate bids, tricks won, remaining tricks, and needed count', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 5,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 4,
+      winnerId: 'north', // Team A ends with 7 tricks won on bid 5; Team B ends with 4 tricks won on bid 7; 2 remaining
+    });
+    const next = resolveCompletedTrick(state);
+    const n = next.earlyTerminationNotification!;
+    assert(n.team1Bid === 5 && n.team1TricksWon === 7 && n.team1Status === 'succeeded' && n.team1TricksNeeded === 0, 'Team A stats must match actual game state');
+    assert(n.team2Bid === 7 && n.team2TricksWon === 4 && n.team2Status === 'failed' && n.team2TricksNeeded === 3, 'Team B stats must match actual game state');
+    assert(n.remainingTricks === 2 && n.tricksPlayed === 11, 'Remaining tricks (2) and tricks played (11) must be exact');
+  });
+
+  test(94, 'Early termination notification: Awaits user dismissal (no auto-dismiss override on state)', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 8,
+      team1TricksBefore: 6,
+      team2Bid: 8,
+      team2TricksBefore: 5,
+      winnerId: 'west', // Team 1: 6/8 (2 left -> max 8? Wait trick 12 makes max 7 < 8)
+    });
+    const state12 = { ...state, trickNumber: 12 };
+    const terminated = resolveCompletedTrick(state12);
+    assert(terminated.phase === 'round_summary', 'Hand terminates early into round_summary');
+    assert(Boolean(terminated.earlyTerminationNotification), 'Notification remains attached in state until user clicks Okay or Cancel');
+  });
+
+  test(95, 'Early termination notification: Hand is scored & scoreboard-ready upon user dismissal (and silent on natural Trick 13)', () => {
+    const earlyState = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 6,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 4,
+      winnerId: 'south',
+    });
+    const terminated = resolveCompletedTrick(earlyState);
+    assert(terminated.phase === 'round_summary', 'Hand enters round_summary so scoreboard opens immediately once user clicks Okay or Cancel');
+    assert(terminated.partnerships.team1.matchScore === 6 && terminated.partnerships.team2.matchScore === -7, 'Final scores ready for scoreboard');
+
+    // Natural Trick 13 end must NOT trigger an early termination notification
+    const trick13State = buildCompletedTrickState({
+      trickNumber: 13,
+      team1Bid: 8,
+      team1TricksBefore: 7,
+      team2Bid: 7,
+      team2TricksBefore: 5,
+      winnerId: 'east',
+    });
+    const naturalEnd = resolveCompletedTrick(trick13State);
+    assert(naturalEnd.phase === 'round_summary', 'Natural Trick 13 end enters round_summary');
+    assert(!naturalEnd.earlyTerminationNotification, 'Natural Trick 13 end must NOT emit an early termination popup');
+  });
+
+  test(96, 'Early termination notification: No additional card play or AI bid can occur during transition', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 5,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 4,
+      winnerId: 'south',
+    });
+    const terminated = resolveCompletedTrick(state);
+
+    let playBlocked = false;
+    try {
+      executeCardPlay(terminated, 'east', terminated.players.east.hand[0]);
+    } catch {
+      playBlocked = true;
+    }
+    assert(playBlocked, 'Card plays must be rejected during early termination notification transition');
+
+    let bidBlocked = false;
+    try {
+      submitPlayerBid(terminated, 'east', 3);
+    } catch {
+      bidBlocked = true;
+    }
+    assert(bidBlocked, 'Bids must be rejected during early termination notification transition');
+  });
+
+  test(97, 'Early termination notification: Duplicate resolution cannot create duplicate notifications or scoreboards', () => {
+    const state = buildCompletedTrickState({
+      trickNumber: 11,
+      team1Bid: 5,
+      team1TricksBefore: 6,
+      team2Bid: 7,
+      team2TricksBefore: 4,
+      winnerId: 'south',
+    });
+    const once = resolveCompletedTrick(state);
+    const twice = resolveCompletedTrick(once);
+    assert(twice === once, 'Second resolveCompletedTrick on terminated hand must be an exact no-op');
+    assert(once.partnerships.team1.roundScoreHistory.length === 1, 'Score applied strictly once');
+  });
+
   const passedCount = results.filter(r => r.passed).length;
   return { passedCount, totalCount: results.length, results };
 }
 
 // If executed via node / tsx directly in command line
 if (typeof process !== 'undefined' && process.argv && process.argv[1]?.includes('runTests')) {
-  console.log('Running Universal Joker 61 Automated Engine Tests...\n');
+  console.log('Running Universal Joker 97 Automated Engine Tests...\n');
   const outcome = runAllTests();
   for (const r of outcome.results) {
     if (r.passed) {

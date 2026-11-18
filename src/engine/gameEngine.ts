@@ -1,5 +1,7 @@
 import {
   Card,
+  EarlyTerminationCase,
+  EarlyTerminationNotification,
   GamePhase,
   GameState,
   MatchConfig,
@@ -68,11 +70,175 @@ export const INITIAL_PLAYERS: Record<PlayerId, Player> = {
   },
 };
 
+export const EARLY_TERMINATION_NOTIFICATION_DURATION_MS = 2000;
+
+export type ContractOutcomeStatus = 'succeeded' | 'failed' | 'achievable';
+
+export interface ContractOutcomeEvaluation {
+  tricksPlayed: number;
+  remainingTricks: number;
+  team1Failed: boolean;
+  team2Failed: boolean;
+  team1Successful: boolean;
+  team2Successful: boolean;
+  team1Status: ContractOutcomeStatus;
+  team2Status: ContractOutcomeStatus;
+  bothOutcomesDetermined: boolean;
+  bothSucceeded: boolean;
+  shouldTerminateOnFailure: boolean;
+}
+
+/**
+ * Evaluates whether each partnership's contract is mathematically succeeded, failed, or still achievable
+ * after a trick has been completed and recorded.
+ */
+export function evaluateContractOutcomes(
+  team1Bid: number,
+  team1TricksWon: number,
+  team2Bid: number,
+  team2TricksWon: number,
+  tricksPlayed: number
+): ContractOutcomeEvaluation {
+  const clampedPlayed = Math.max(0, Math.min(13, tricksPlayed));
+  const remainingTricks = 13 - clampedPlayed;
+
+  const team1Failed = team1TricksWon + remainingTricks < team1Bid;
+  const team2Failed = team2TricksWon + remainingTricks < team2Bid;
+  const team1Successful = team1TricksWon >= team1Bid;
+  const team2Successful = team2TricksWon >= team2Bid;
+
+  const team1Status: ContractOutcomeStatus = team1Successful
+    ? 'succeeded'
+    : team1Failed
+    ? 'failed'
+    : 'achievable';
+
+  const team2Status: ContractOutcomeStatus = team2Successful
+    ? 'succeeded'
+    : team2Failed
+    ? 'failed'
+    : 'achievable';
+
+  const bothOutcomesDetermined = team1Status !== 'achievable' && team2Status !== 'achievable';
+  const bothSucceeded = team1Status === 'succeeded' && team2Status === 'succeeded';
+  const shouldTerminateOnFailure =
+    bothOutcomesDetermined && (team1Status === 'failed' || team2Status === 'failed');
+
+  return {
+    tricksPlayed: clampedPlayed,
+    remainingTricks,
+    team1Failed,
+    team2Failed,
+    team1Successful,
+    team2Successful,
+    team1Status,
+    team2Status,
+    bothOutcomesDetermined,
+    bothSucceeded,
+    shouldTerminateOnFailure,
+  };
+}
+
+/**
+ * Builds the dynamic 2-second early termination notification when a hand ends early
+ * due to failed contracts (never when both succeed or while either remains achievable).
+ */
+export function buildEarlyTerminationNotification(
+  team1Bid: number,
+  team1TricksWon: number,
+  team2Bid: number,
+  team2TricksWon: number,
+  tricksPlayed: number,
+  prevTeam1TricksWon: number = team1TricksWon,
+  prevTeam2TricksWon: number = team2TricksWon
+): EarlyTerminationNotification | null {
+  const currentEval = evaluateContractOutcomes(
+    team1Bid,
+    team1TricksWon,
+    team2Bid,
+    team2TricksWon,
+    tricksPlayed
+  );
+
+  if (tricksPlayed >= 13 || !currentEval.shouldTerminateOnFailure) {
+    return null;
+  }
+
+  const prevTricksPlayed = Math.max(0, tricksPlayed - 1);
+  const prevEval = evaluateContractOutcomes(
+    team1Bid,
+    prevTeam1TricksWon,
+    team2Bid,
+    prevTeam2TricksWon,
+    prevTricksPlayed
+  );
+
+  const team1TricksNeeded = Math.max(0, team1Bid - team1TricksWon);
+  const team2TricksNeeded = Math.max(0, team2Bid - team2TricksWon);
+
+  let caseType: EarlyTerminationCase;
+  let title: string;
+  let message: string;
+
+  if (currentEval.team1Failed && currentEval.team2Failed) {
+    caseType = 'both_failed';
+    title = 'Both teams have failed their bids!';
+    message = 'Neither team can fulfil its contract with the remaining tricks.';
+  } else if (currentEval.team1Successful && currentEval.team2Failed) {
+    if (prevEval.team1Successful && !prevEval.team2Failed) {
+      caseType = 'team_b_failed';
+      title = 'Team B cannot fulfil its bid!';
+      message = "Team A has secured enough tricks to make Team B's contract impossible.";
+    } else {
+      caseType = 'one_succeeded_one_failed';
+      title = 'Contract outcome decided!';
+      message = 'Team A has fulfilled its bid. Team B cannot fulfil its contract.';
+    }
+  } else {
+    if (prevEval.team2Successful && !prevEval.team1Failed) {
+      caseType = 'team_a_failed';
+      title = 'Team A cannot fulfil its bid!';
+      message = "Team B has secured enough tricks to make Team A's contract impossible.";
+    } else {
+      caseType = 'one_succeeded_one_failed';
+      title = 'Contract outcome decided!';
+      message = 'Team B has fulfilled its bid. Team A cannot fulfil its contract.';
+    }
+  }
+
+  return {
+    caseType,
+    title,
+    message,
+    team1Bid,
+    team1TricksWon,
+    team1Status: currentEval.team1Failed ? 'failed' : 'succeeded',
+    team1TricksNeeded,
+    team2Bid,
+    team2TricksWon,
+    team2Status: currentEval.team2Failed ? 'failed' : 'succeeded',
+    team2TricksNeeded,
+    remainingTricks: currentEval.remainingTricks,
+    tricksPlayed: currentEval.tricksPlayed,
+    durationMs: EARLY_TERMINATION_NOTIFICATION_DURATION_MS,
+  };
+}
+
+function createFreshPlayers(): Record<PlayerId, Player> {
+  return {
+    south: { ...INITIAL_PLAYERS.south, hand: [] },
+    east: { ...INITIAL_PLAYERS.east, hand: [] },
+    north: { ...INITIAL_PLAYERS.north, hand: [] },
+    west: { ...INITIAL_PLAYERS.west, hand: [] },
+  };
+}
+
 /**
  * Initializes a new match state
  */
 export function initializeMatch(
-  config: MatchConfig = { mode: 'default_points', targetPoints: 100, durationSeconds: 1800 }
+  config: MatchConfig = { mode: 'default_points', targetPoints: 100, durationSeconds: 1800 },
+  preservedSettings?: GameState['settings']
 ): GameState {
   const initialDealer = getRandomInitialDealer();
 
@@ -91,7 +257,7 @@ export function initializeMatch(
     currentTrick: [],
     trickNumber: 1,
     trickHistory: [],
-    players: { ...INITIAL_PLAYERS },
+    players: createFreshPlayers(),
     partnerships: {
       team1: {
         id: 'team1',
@@ -118,14 +284,18 @@ export function initializeMatch(
     phase: 'idle',
     statusMessage: 'Ready to deal cards.',
     reshuffleReason: null,
+    earlyTerminationReason: null,
+    earlyTerminationNotification: null,
     lastTrickWinner: null,
     matchWinner: null,
-    settings: {
-      soundEnabled: true,
-      gameSpeed: 'normal',
-      autoSortHand: true,
-      intelligenceMode: 'legend',
-    },
+    settings: preservedSettings
+      ? { ...preservedSettings }
+      : {
+          soundEnabled: true,
+          gameSpeed: 'normal',
+          autoSortHand: true,
+          intelligenceMode: 'legend',
+        },
   };
 }
 
@@ -202,6 +372,8 @@ export function startHand(state: GameState, customDeck?: Card[], reshuffleReason
     phase: 'bidding',
     statusMessage: statusMsg,
     reshuffleReason: finalReshuffleReason,
+    earlyTerminationReason: null,
+    earlyTerminationNotification: null,
     lastTrickWinner: null,
   };
 }
@@ -397,7 +569,75 @@ export function executeCardPlay(state: GameState, playerId: PlayerId, card: Card
 }
 
 /**
- * Resolves a completed trick
+ * Shared internal helper that computes hand scores once, updates cumulative match scores,
+ * evaluates overall match winner, and transitions cleanly out of active play.
+ */
+function finalizeHandWithScoring(
+  state: GameState,
+  players: GameState['players'],
+  partnerships: GameState['partnerships'],
+  trickHistory: GameState['trickHistory'],
+  buildStatusMessage: (params: {
+    team1Delta: number;
+    team2Delta: number;
+    matchStatus: ReturnType<typeof evaluateMatchStatus>;
+  }) => string,
+  earlyTerminationReason: string | null = null,
+  earlyTerminationNotification: EarlyTerminationNotification | null = null
+): GameState {
+  const scores = calculateHandScores(
+    partnerships.team1.totalBid,
+    partnerships.team1.tricksWon,
+    partnerships.team2.totalBid,
+    partnerships.team2.tricksWon
+  );
+
+  const team1NewScore = partnerships.team1.matchScore + scores.team1.scoreDelta;
+  const team2NewScore = partnerships.team2.matchScore + scores.team2.scoreDelta;
+
+  const finalPartnerships: GameState['partnerships'] = {
+    team1: {
+      ...partnerships.team1,
+      matchScore: team1NewScore,
+      roundScoreHistory: [...partnerships.team1.roundScoreHistory, scores.team1.scoreDelta],
+    },
+    team2: {
+      ...partnerships.team2,
+      matchScore: team2NewScore,
+      roundScoreHistory: [...partnerships.team2.roundScoreHistory, scores.team2.scoreDelta],
+    },
+  };
+
+  const matchStatus = evaluateMatchStatus(
+    state.matchConfig,
+    team1NewScore,
+    team2NewScore,
+    false, // Hand is finished
+    state.isTimeExpired
+  );
+
+  return {
+    ...state,
+    players,
+    partnerships: finalPartnerships,
+    currentTrick: [],
+    trickHistory,
+    lastTrickWinner: null,
+    isTimerRunning: matchStatus.isMatchOver ? false : state.isTimerRunning,
+    phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
+    matchWinner: matchStatus.winner,
+    earlyTerminationReason,
+    earlyTerminationNotification,
+    statusMessage: buildStatusMessage({
+      team1Delta: scores.team1.scoreDelta,
+      team2Delta: scores.team2.scoreDelta,
+      matchStatus,
+    }),
+  };
+}
+
+/**
+ * Resolves a completed trick and checks hand/contract termination conditions
  */
 export function resolveCompletedTrick(state: GameState): GameState {
   if (state.phase !== 'trick_completed' || !state.lastTrickWinner) {
@@ -444,52 +684,59 @@ export function resolveCompletedTrick(state: GameState): GameState {
 
   const updatedHistory = [...state.trickHistory, trickRecord];
 
-  // If 13 tricks are completed, resolve hand scores!
-  if (state.trickNumber >= 13) {
-    const scores = calculateHandScores(
-      updatedPartnerships.team1.totalBid,
-      updatedPartnerships.team1.tricksWon,
-      updatedPartnerships.team2.totalBid,
-      updatedPartnerships.team2.tricksWon
-    );
+  // Check contract outcomes after trick winner has been recorded
+  const contractEval = evaluateContractOutcomes(
+    updatedPartnerships.team1.totalBid,
+    updatedPartnerships.team1.tricksWon,
+    updatedPartnerships.team2.totalBid,
+    updatedPartnerships.team2.tricksWon,
+    state.trickNumber
+  );
 
-    const team1NewScore = updatedPartnerships.team1.matchScore + scores.team1.scoreDelta;
-    const team2NewScore = updatedPartnerships.team2.matchScore + scores.team2.scoreDelta;
+  const isFinalTrick = state.trickNumber >= 13;
+  const isEarlyFailureTermination = !isFinalTrick && contractEval.shouldTerminateOnFailure;
 
-    const finalPartnerships = {
-      team1: {
-        ...updatedPartnerships.team1,
-        matchScore: team1NewScore,
-        roundScoreHistory: [...updatedPartnerships.team1.roundScoreHistory, scores.team1.scoreDelta],
+  // Terminate when all 13 tricks are played OR when both contracts are determined with at least one failure
+  if (isFinalTrick || isEarlyFailureTermination) {
+    const earlyNotification = isEarlyFailureTermination
+      ? buildEarlyTerminationNotification(
+          updatedPartnerships.team1.totalBid,
+          updatedPartnerships.team1.tricksWon,
+          updatedPartnerships.team2.totalBid,
+          updatedPartnerships.team2.tricksWon,
+          state.trickNumber,
+          state.partnerships.team1.tricksWon,
+          state.partnerships.team2.tricksWon
+        )
+      : null;
+
+    const earlyReason = isEarlyFailureTermination
+      ? `Hand concluded early after Trick ${state.trickNumber} of 13: ${
+          contractEval.team1Failed && contractEval.team2Failed
+            ? 'both teams can no longer meet their contracts.'
+            : contractEval.team1Failed
+            ? `Team A failed its contract while Team B met its bid.`
+            : `Team B failed its contract while Team A met its bid.`
+        }`
+      : null;
+
+    return finalizeHandWithScoring(
+      state,
+      updatedPlayers,
+      updatedPartnerships,
+      updatedHistory,
+      ({ team1Delta, team2Delta, matchStatus }) => {
+        if (matchStatus.isMatchOver) {
+          return `Match finished! ${matchStatus.reason}`;
+        }
+        if (isEarlyFailureTermination) {
+          return `${earlyReason} Team A: ${team1Delta > 0 ? '+' : ''}${team1Delta} pts, Team B: ${team2Delta > 0 ? '+' : ''}${team2Delta} pts.`;
+        }
+        return `Hand ${state.handNumber} complete! Team A: ${team1Delta > 0 ? '+' : ''}${team1Delta} pts, Team B: ${team2Delta > 0 ? '+' : ''}${team2Delta} pts.`;
       },
-      team2: {
-        ...updatedPartnerships.team2,
-        matchScore: team2NewScore,
-        roundScoreHistory: [...updatedPartnerships.team2.roundScoreHistory, scores.team2.scoreDelta],
-      },
-    };
-
-    // Evaluate match status
-    const matchStatus = evaluateMatchStatus(
-      state.matchConfig,
-      team1NewScore,
-      team2NewScore,
-      false, // Hand is finished
-      state.isTimeExpired
+      earlyReason,
+      earlyNotification
     );
-
-    return {
-      ...state,
-      players: updatedPlayers,
-      partnerships: finalPartnerships,
-      currentTrick: [],
-      trickHistory: updatedHistory,
-      phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
-      matchWinner: matchStatus.winner,
-      statusMessage: matchStatus.isMatchOver
-        ? `Match finished! ${matchStatus.reason}`
-        : `Hand ${state.handNumber} complete! Team 1: ${scores.team1.scoreDelta > 0 ? '+' : ''}${scores.team1.scoreDelta} pts, Team 2: ${scores.team2.scoreDelta > 0 ? '+' : ''}${scores.team2.scoreDelta} pts.`,
-    };
   }
 
   // Advance to next trick
@@ -499,6 +746,7 @@ export function resolveCompletedTrick(state: GameState): GameState {
     partnerships: updatedPartnerships,
     currentTrick: [],
     trickHistory: updatedHistory,
+    lastTrickWinner: null,
     trickNumber: state.trickNumber + 1,
     leadPlayer: winnerId,
     turn: winnerId,
@@ -529,6 +777,28 @@ export function advanceToNextHand(state: GameState): GameState {
 }
 
 /**
+ * Confirms starting a completely new match after a completed match ("Play Again").
+ * Idempotent guard: if called repeatedly before React unmounts the modal, only the first call
+ * when match is completed will initialize a new match; subsequent calls return state unchanged.
+ */
+export function confirmPlayAgain(state: GameState): GameState {
+  if (state.phase !== 'match_completed' && !state.matchWinner) {
+    return state;
+  }
+
+  const freshMatch = initializeMatch(state.matchConfig, state.settings);
+  return startHand(freshMatch);
+}
+
+/**
+ * Clears/releases completed match state when exiting to main menu ("Exit Game")
+ * without starting a new match or retaining old cumulative scores.
+ */
+export function exitCompletedMatch(state: GameState): GameState {
+  return initializeMatch(state.matchConfig, state.settings);
+}
+
+/**
  * Allows the actual user (South) to skip remaining rounds once both teams have achieved their bids
  * (e.g. Team 1 bid 5 has >= 5 tricks, Team 2 bid 6 has >= 6 tricks).
  * Hand concludes immediately and awards scores according to contracts achieved.
@@ -545,44 +815,15 @@ export function skipRemainingTricks(state: GameState): GameState {
     throw new Error('Both teams must achieve their bids before skipping remaining rounds.');
   }
 
-  const scores = calculateHandScores(
-    team1.totalBid,
-    team1.tricksWon,
-    team2.totalBid,
-    team2.tricksWon
+  return finalizeHandWithScoring(
+    state,
+    state.players,
+    state.partnerships,
+    state.trickHistory,
+    ({ team1Delta, team2Delta }) =>
+      `Both contracts achieved! Hand concluded early by user. Team 1: ${team1.tricksWon}/${team1.totalBid} tricks (${team1Delta >= 0 ? '+' : ''}${team1Delta} pts), Team 2: ${team2.tricksWon}/${team2.totalBid} tricks (${team2Delta >= 0 ? '+' : ''}${team2Delta} pts).`,
+    `Both teams achieved their contracts by Trick ${state.trickNumber} of 13.`
   );
-
-  const team1NewScore = team1.matchScore + scores.team1.scoreDelta;
-  const team2NewScore = team2.matchScore + scores.team2.scoreDelta;
-
-  const finalPartnerships = {
-    team1: {
-      ...team1,
-      matchScore: team1NewScore,
-      roundScoreHistory: [...team1.roundScoreHistory, scores.team1.scoreDelta],
-    },
-    team2: {
-      ...team2,
-      matchScore: team2NewScore,
-      roundScoreHistory: [...team2.roundScoreHistory, scores.team2.scoreDelta],
-    },
-  };
-
-  const matchStatus = evaluateMatchStatus(
-    state.matchConfig,
-    team1NewScore,
-    team2NewScore,
-    false,
-    state.isTimeExpired
-  );
-
-  return {
-    ...state,
-    phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
-    partnerships: finalPartnerships,
-    matchWinner: matchStatus.winner,
-    statusMessage: `Both contracts achieved! Hand concluded early by user. Team 1: ${team1.tricksWon}/${team1.totalBid} tricks (${scores.team1.scoreDelta >= 0 ? '+' : ''}${scores.team1.scoreDelta} pts), Team 2: ${team2.tricksWon}/${team2.totalBid} tricks (${scores.team2.scoreDelta >= 0 ? '+' : ''}${scores.team2.scoreDelta} pts).`,
-  };
 }
 
 /**
@@ -600,7 +841,6 @@ export function claimShowHand(
   }
 
   const team1 = state.partnerships.team1;
-  const team2 = state.partnerships.team2;
   const neededTricks = Math.max(0, team1.totalBid - team1.tricksWon);
 
   let isSuccess: boolean;
@@ -625,89 +865,30 @@ export function claimShowHand(
   }
 
   if (isSuccess) {
-    // Claim Succeeded! Team 1 tricks are fulfilled to the required contract
     const finalTeam1Tricks = Math.max(team1.tricksWon + neededTricks, team1.totalBid);
-    const scores = calculateHandScores(
-      team1.totalBid,
-      finalTeam1Tricks,
-      team2.totalBid,
-      team2.tricksWon
-    );
-
-    const team1NewScore = team1.matchScore + scores.team1.scoreDelta;
-    const team2NewScore = team2.matchScore + scores.team2.scoreDelta;
-
-    const finalPartnerships = {
+    const updatedPartnerships = {
+      ...state.partnerships,
       team1: {
         ...team1,
         tricksWon: finalTeam1Tricks,
-        matchScore: team1NewScore,
-        roundScoreHistory: [...team1.roundScoreHistory, scores.team1.scoreDelta],
-      },
-      team2: {
-        ...team2,
-        matchScore: team2NewScore,
-        roundScoreHistory: [...team2.roundScoreHistory, scores.team2.scoreDelta],
       },
     };
 
-    const matchStatus = evaluateMatchStatus(
-      state.matchConfig,
-      team1NewScore,
-      team2NewScore,
-      false,
-      state.isTimeExpired
+    return finalizeHandWithScoring(
+      state,
+      state.players,
+      updatedPartnerships,
+      state.trickHistory,
+      ({ team1Delta }) => `${successMsg} (${team1Delta >= 0 ? '+' : ''}${team1Delta} pts)`
     );
-
-    return {
-      ...state,
-      phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
-      partnerships: finalPartnerships,
-      matchWinner: matchStatus.winner,
-      statusMessage: `${successMsg} (${scores.team1.scoreDelta >= 0 ? '+' : ''}${scores.team1.scoreDelta} pts)`,
-    };
   } else {
-    // Claim Failed! Penalty applied: total score - current bid
-    const penaltyDeduction = team1.totalBid;
-    const team1NewScore = team1.matchScore - penaltyDeduction;
-
-    // Team 2 succeeded their contract so they get their contract score
-    const scores = calculateHandScores(
-      team1.totalBid,
-      team1.tricksWon,
-      team2.totalBid,
-      team2.tricksWon
+    return finalizeHandWithScoring(
+      state,
+      state.players,
+      state.partnerships,
+      state.trickHistory,
+      () => failMsg
     );
-    const team2NewScore = team2.matchScore + scores.team2.scoreDelta;
-
-    const finalPartnerships = {
-      team1: {
-        ...team1,
-        matchScore: team1NewScore,
-        roundScoreHistory: [...team1.roundScoreHistory, -penaltyDeduction],
-      },
-      team2: {
-        ...team2,
-        matchScore: team2NewScore,
-        roundScoreHistory: [...team2.roundScoreHistory, scores.team2.scoreDelta],
-      },
-    };
-
-    const matchStatus = evaluateMatchStatus(
-      state.matchConfig,
-      team1NewScore,
-      team2NewScore,
-      false,
-      state.isTimeExpired
-    );
-
-    return {
-      ...state,
-      phase: matchStatus.isMatchOver ? 'match_completed' : 'round_summary',
-      partnerships: finalPartnerships,
-      matchWinner: matchStatus.winner,
-      statusMessage: failMsg,
-    };
   }
 }
 

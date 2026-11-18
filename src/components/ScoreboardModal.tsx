@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
+import { Crown, RotateCcw, Home } from 'lucide-react';
 import { MatchConfig, Partnership, Player, PlayerId, TeamId } from '../types/game';
 import { RulebookLanguage, getSavedRulebookLanguage, saveRulebookLanguage } from '../utils/firstTimeUser';
 import { LanguageSelector } from './LanguageSelector';
@@ -14,8 +15,10 @@ interface ScoreboardModalProps {
   matchConfig: MatchConfig;
   isMatchOver?: boolean;
   matchWinner?: TeamId | 'tie' | null;
+  earlyTerminationReason?: string | null;
   onNextHand?: () => void;
   onRestartMatch?: () => void;
+  onExitGame?: () => void;
   autoDealCountdown?: number | null;
   isAutoDealPaused?: boolean;
   onTogglePauseAutoDeal?: () => void;
@@ -32,8 +35,10 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
   matchConfig,
   isMatchOver = false,
   matchWinner = null,
+  earlyTerminationReason = null,
   onNextHand,
   onRestartMatch,
+  onExitGame,
   autoDealCountdown = null,
   isAutoDealPaused = false,
   onTogglePauseAutoDeal,
@@ -41,6 +46,8 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
   onLanguageChange,
 }) => {
   const [localLang, setLocalLang] = useState<RulebookLanguage>(controlledLang || getSavedRulebookLanguage());
+  const [isActionLocked, setIsActionLocked] = useState(false);
+  const actionLockRef = useRef(false);
 
   useEffect(() => {
     if (controlledLang) {
@@ -49,6 +56,13 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
       setLocalLang(getSavedRulebookLanguage());
     }
   }, [isOpen, controlledLang]);
+
+  useEffect(() => {
+    if (!isOpen || !isMatchOver) {
+      actionLockRef.current = false;
+      setIsActionLocked(false);
+    }
+  }, [isOpen, isMatchOver]);
 
   const activeLang = controlledLang || localLang;
   const t = (MODAL_TRANSLATIONS[activeLang] || MODAL_TRANSLATIONS.en).scoreboard;
@@ -70,10 +84,26 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
     }
   }, [isOpen, isMatchOver]);
 
+  const handlePlayAgainClick = () => {
+    if (actionLockRef.current || !onRestartMatch) return;
+    actionLockRef.current = true;
+    setIsActionLocked(true);
+    onRestartMatch();
+  };
+
+  const handleExitGameClick = () => {
+    if (actionLockRef.current || !onExitGame) return;
+    actionLockRef.current = true;
+    setIsActionLocked(true);
+    onExitGame();
+  };
+
   if (!isOpen) return null;
 
   const team1 = partnerships.team1;
   const team2 = partnerships.team2;
+  const isTeam1Winner = isMatchOver && matchWinner === 'team1';
+  const isTeam2Winner = isMatchOver && matchWinner === 'team2';
 
   const targetLabel =
     matchConfig.mode === 'default_points'
@@ -84,9 +114,9 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-neutral-950/85 backdrop-blur-md animate-fade-in font-outfit">
-      <div className="relative w-full max-w-xl max-h-[90dvh] overflow-y-auto bg-gradient-to-b from-[#2E1810] via-[#1F100B] to-[#120704] border-2 border-amber-600/70 rounded-2xl p-4 sm:p-8 shadow-2xl text-center text-amber-100">
+      <div className="relative w-full max-w-xl max-h-[92dvh] overflow-y-auto bg-gradient-to-b from-[#2E1810] via-[#1F100B] to-[#120704] border-2 border-amber-600/70 rounded-2xl p-3.5 sm:p-7 shadow-2xl text-center text-amber-100">
         {/* Top Controls: Language Toggle & Close Button */}
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-amber-800/40">
+        <div className="flex items-center justify-between mb-3 sm:mb-4 pb-2 border-b border-amber-800/40">
           <LanguageSelector
             currentLanguage={activeLang}
             onSelectLanguage={handleLangChange}
@@ -96,6 +126,7 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close Scoreboard"
             className="w-8 h-8 rounded-full bg-neutral-900 border border-amber-700/60 text-amber-300 hover:text-white flex items-center justify-center cursor-pointer hover:bg-neutral-800 transition-colors"
           >
             ✕
@@ -103,11 +134,11 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
         </div>
 
         {/* Header */}
-        <div className="mb-5">
+        <div className="mb-4 sm:mb-5">
           <div className="inline-block px-3 py-1 rounded-full bg-amber-950 border border-amber-600/50 text-amber-300 font-cinzel text-xs uppercase tracking-widest mb-1">
             {isMatchOver ? t.titleFinal : t.titleSummary(handNumber)}
           </div>
-          <h2 className="font-cinzel text-2xl sm:text-3xl font-black text-amber-200">
+          <h2 className="font-cinzel text-xl sm:text-3xl font-black text-amber-200">
             {isMatchOver
               ? matchWinner === 'tie'
                 ? t.tieTitle
@@ -117,10 +148,15 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
           <p className="text-xs text-amber-300/80 font-outfit mt-1">
             {targetLabel} · {t.scoringMatrix}
           </p>
+          {earlyTerminationReason && (
+            <div className="mt-2 inline-block px-3 py-1 rounded-lg bg-amber-950/80 border border-amber-500/40 text-[11px] text-amber-200">
+              {earlyTerminationReason}
+            </div>
+          )}
         </div>
 
         {/* Partnership Scores Table */}
-        <div className="overflow-x-auto rounded-xl border border-amber-700/40 bg-neutral-950/70 mb-5">
+        <div className="overflow-x-auto rounded-xl border border-amber-700/40 bg-neutral-950/70 mb-4 sm:mb-5">
           <table className="w-full text-left font-outfit text-xs sm:text-sm">
             <thead className="bg-amber-950/80 text-amber-300 font-cinzel text-[11px] uppercase tracking-wider border-b border-amber-800/50">
               <tr>
@@ -134,11 +170,23 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
             </thead>
             <tbody className="divide-y divide-amber-900/30 text-amber-100">
               {/* Team 1 */}
-              <tr className="bg-amber-950/30 font-semibold">
+              <tr
+                className={
+                  isTeam1Winner
+                    ? 'bg-gradient-to-r from-amber-500/20 via-amber-600/15 to-emerald-600/15 font-semibold ring-1 ring-inset ring-amber-400/70'
+                    : 'bg-amber-950/30 font-semibold'
+                }
+              >
                 <td className="py-3 px-3">
                   <div className="flex flex-col">
-                    <span className="font-cinzel text-amber-100 flex items-center gap-1">
-                      {t.team1Label}
+                    <span className="font-cinzel text-amber-100 flex flex-wrap items-center gap-1.5">
+                      <span>{t.team1Label}</span>
+                      {isTeam1Winner && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-400 text-neutral-950 font-cinzel font-black text-[10px] uppercase tracking-wider shadow-sm">
+                          <Crown size={10} />
+                          {t.winnerBadge}
+                        </span>
+                      )}
                     </span>
                     <span className="text-[10px] text-amber-400/70 font-sans">
                       {t.team1Seats}
@@ -179,11 +227,23 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
               </tr>
 
               {/* Team 2 */}
-              <tr>
+              <tr
+                className={
+                  isTeam2Winner
+                    ? 'bg-gradient-to-r from-amber-500/20 via-amber-600/15 to-emerald-600/15 font-semibold ring-1 ring-inset ring-amber-400/70'
+                    : ''
+                }
+              >
                 <td className="py-3 px-3">
                   <div className="flex flex-col">
-                    <span className="font-cinzel text-amber-100 flex items-center gap-1">
-                      {t.team2Label}
+                    <span className="font-cinzel text-amber-100 flex flex-wrap items-center gap-1.5">
+                      <span>{t.team2Label}</span>
+                      {isTeam2Winner && (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-400 text-neutral-950 font-cinzel font-black text-[10px] uppercase tracking-wider shadow-sm">
+                          <Crown size={10} />
+                          {t.winnerBadge}
+                        </span>
+                      )}
                     </span>
                     <span className="text-[10px] text-amber-400/70 font-sans">
                       {t.team2Seats}
@@ -227,7 +287,7 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
         </div>
 
         {/* Scoring Rules Quick Clarification */}
-        <div className="p-2.5 rounded-lg bg-neutral-900/60 border border-amber-900/40 text-left text-[11px] text-amber-300/80 mb-5 space-y-0.5">
+        <div className="p-2.5 rounded-lg bg-neutral-900/60 border border-amber-900/40 text-left text-[11px] text-amber-300/80 mb-4 sm:mb-5 space-y-0.5">
           <div>• {t.rulePoint1}</div>
           <div>• {t.rulePoint2}</div>
           <div>• {t.rulePoint3}</div>
@@ -235,52 +295,76 @@ export const ScoreboardModal: React.FC<ScoreboardModalProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          {!isMatchOver && onNextHand && (
-            <div className="flex flex-col items-center gap-1.5 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={onNextHand}
-                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-cinzel font-bold text-xs uppercase rounded-xl border border-emerald-300 shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
-              >
-                <span>{t.btnDealNext}</span>
-                {autoDealCountdown !== null && !isAutoDealPaused && (
-                  <span className="px-2 py-0.5 rounded-full bg-neutral-950/70 text-amber-300 font-mono text-[11px] border border-amber-400/50 animate-pulse">
-                    {t.btnAutoIn(autoDealCountdown)}
-                  </span>
-                )}
-              </button>
-              {autoDealCountdown !== null && onTogglePauseAutoDeal && (
+        {isMatchOver ? (
+          <div className="rounded-xl bg-neutral-950/80 border border-amber-500/50 p-3.5 sm:p-4 shadow-inner">
+            <p className="font-cinzel text-sm sm:text-base font-bold text-amber-100 mb-3">
+              {t.rematchPrompt}
+            </p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5 sm:gap-3">
+              {onRestartMatch && (
                 <button
                   type="button"
-                  onClick={onTogglePauseAutoDeal}
-                  className="text-[11px] text-amber-300/80 hover:text-amber-200 underline cursor-pointer"
+                  onClick={handlePlayAgainClick}
+                  disabled={isActionLocked}
+                  className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 disabled:opacity-60 disabled:cursor-not-allowed text-neutral-950 font-cinzel font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl border border-amber-200 shadow-lg cursor-pointer transition-all flex items-center justify-center gap-2 active:scale-95"
                 >
-                  {isAutoDealPaused ? t.btnResumeAuto : t.btnPauseAuto}
+                  <RotateCcw size={15} />
+                  <span>{t.btnPlayAgain}</span>
+                </button>
+              )}
+
+              {onExitGame && (
+                <button
+                  type="button"
+                  onClick={handleExitGameClick}
+                  disabled={isActionLocked}
+                  className="w-full sm:w-auto min-h-[44px] px-6 py-2.5 bg-neutral-900 hover:bg-rose-950/70 disabled:opacity-60 disabled:cursor-not-allowed text-amber-200 hover:text-rose-200 font-cinzel font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl border border-amber-700/60 hover:border-rose-500/60 cursor-pointer transition-colors flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <Home size={15} />
+                  <span>{t.btnExitGame}</span>
                 </button>
               )}
             </div>
-          )}
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            {onNextHand && (
+              <div className="flex flex-col items-center gap-1.5 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={onNextHand}
+                  className="w-full sm:w-auto min-h-[42px] px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-cinzel font-bold text-xs uppercase rounded-xl border border-emerald-300 shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
+                >
+                  <span>{t.btnDealNext}</span>
+                  {autoDealCountdown !== null && !isAutoDealPaused && (
+                    <span className="px-2 py-0.5 rounded-full bg-neutral-950/70 text-amber-300 font-mono text-[11px] border border-amber-400/50 animate-pulse">
+                      {t.btnAutoIn(autoDealCountdown)}
+                    </span>
+                  )}
+                </button>
+                {autoDealCountdown !== null && onTogglePauseAutoDeal && (
+                  <button
+                    type="button"
+                    onClick={onTogglePauseAutoDeal}
+                    className="text-[11px] text-amber-300/80 hover:text-amber-200 underline cursor-pointer"
+                  >
+                    {isAutoDealPaused ? t.btnResumeAuto : t.btnPauseAuto}
+                  </button>
+                )}
+              </div>
+            )}
 
-          {isMatchOver && onRestartMatch && (
             <button
               type="button"
-              onClick={onRestartMatch}
-              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-neutral-950 font-cinzel font-bold text-xs uppercase rounded-xl border border-amber-200 shadow-md cursor-pointer transition-all"
+              onClick={onClose}
+              className="w-full sm:w-auto min-h-[42px] px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-amber-200 font-cinzel text-xs rounded-xl border border-amber-700/50 cursor-pointer transition-colors"
             >
-              {t.btnStartNewMatch}
+              {t.btnReviewTable}
             </button>
-          )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full sm:w-auto px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-amber-200 font-cinzel text-xs rounded-xl border border-amber-700/50 cursor-pointer transition-colors"
-          >
-            {t.btnReviewTable}
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+

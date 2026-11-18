@@ -98,6 +98,29 @@ export interface GameSettings {
   intelligenceMode: AIIntelligenceLevel;
 }
 
+export type EarlyTerminationCase =
+  | 'team_b_failed'
+  | 'team_a_failed'
+  | 'both_failed'
+  | 'one_succeeded_one_failed';
+
+export interface EarlyTerminationNotification {
+  caseType: EarlyTerminationCase;
+  title: string;
+  message: string;
+  team1Bid: number;
+  team1TricksWon: number;
+  team1Status: 'succeeded' | 'failed';
+  team1TricksNeeded: number;
+  team2Bid: number;
+  team2TricksWon: number;
+  team2Status: 'succeeded' | 'failed';
+  team2TricksNeeded: number;
+  remainingTricks: number;
+  tricksPlayed: number;
+  durationMs: number;
+}
+
 export interface GameState {
   matchConfig: MatchConfig;
   handNumber: number;
@@ -121,6 +144,8 @@ export interface GameState {
   phase: GamePhase;
   statusMessage: string;
   reshuffleReason: string | null;
+  earlyTerminationReason?: string | null;
+  earlyTerminationNotification?: EarlyTerminationNotification | null;
   lastTrickWinner: PlayerId | null;
   matchWinner: TeamId | 'tie' | null;
   settings: GameSettings;

@@ -14,6 +14,8 @@ import {
   advanceToNextHand,
   skipRemainingTricks,
   claimShowHand,
+  confirmPlayAgain,
+  exitCompletedMatch,
 } from '../engine/gameEngine';
 import { getLegalCards } from '../engine/cardPlay';
 import { calculateAIBid, chooseAICard } from '../engine/ai';
@@ -32,6 +34,7 @@ import { TacticsModal } from './TacticsModal';
 import { ShowHandModal } from './ShowHandModal';
 import { WalkthroughModal } from './WalkthroughModal';
 import { ReshufflePopup } from './ReshufflePopup';
+import { EarlyTerminationPopup } from './EarlyTerminationPopup';
 import { SqueezableActionBanner } from './SqueezableActionBanner';
 import { checkIsFirstTimeUser, RulebookLanguage, getSavedRulebookLanguage, saveRulebookLanguage } from '../utils/firstTimeUser';
 import { AIIntelligenceLevel } from '../types/game';
@@ -63,6 +66,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
   const [autoDealCountdown, setAutoDealCountdown] = useState<number | null>(null);
   const [isAutoDealPaused, setIsAutoDealPaused] = useState(false);
   const [seenReshuffleReason, setSeenReshuffleReason] = useState<string | null>(null);
+  const [earlyNoticeCompletedHand, setEarlyNoticeCompletedHand] = useState<number | null>(null);
+
+  const isHandTerminated =
+    gameState.phase === 'round_summary' || gameState.phase === 'match_completed';
+  const isEarlyTerminationNoticeVisible = Boolean(
+    isHandTerminated &&
+      gameState.earlyTerminationNotification &&
+      earlyNoticeCompletedHand !== gameState.handNumber
+  );
 
   const isReshufflePopupOpen = Boolean(
     gameState.reshuffleReason && gameState.reshuffleReason !== seenReshuffleReason
@@ -71,6 +83,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
   const handleCloseReshufflePopup = useCallback(() => {
     setSeenReshuffleReason(gameState.reshuffleReason);
   }, [gameState.reshuffleReason]);
+
+  const handleDismissEarlyTerminationNotice = useCallback(() => {
+    sounds.playClick();
+    setEarlyNoticeCompletedHand(gameState.handNumber);
+  }, [gameState.handNumber]);
 
   const handleAppLanguageChange = useCallback((lang: RulebookLanguage) => {
     saveRulebookLanguage(lang);
@@ -92,8 +109,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
   }, []);
 
   const aiTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const restartLockRef = useRef(false);
   const isAutoDealPausedRef = useRef(false);
   isAutoDealPausedRef.current = isAutoDealPaused;
+
+  useEffect(() => {
+    if (gameState.phase !== 'match_completed') {
+      restartLockRef.current = false;
+    }
+  }, [gameState.phase]);
 
   // Clear timers on unmount
   useEffect(() => {
@@ -146,12 +170,26 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
   }, [gameState.phase, gameState.lastTrickWinner]);
 
   /**
-   * Automatically open Scoreboard and countdown to deal next hand when a hand finishes
+   * Show early termination explanation popup on failed contracts until the user clicks
+   * Okay or Cancel, then immediately open Scoreboard and start auto-deal countdown (if active)
    */
   useEffect(() => {
-    if (gameState.phase !== 'round_summary' && gameState.phase !== 'match_completed') {
+    if (!isHandTerminated) {
       setAutoDealCountdown(null);
       setIsAutoDealPaused(false);
+      setEarlyNoticeCompletedHand(null);
+      return;
+    }
+
+    if (aiTimerRef.current) {
+      clearTimeout(aiTimerRef.current);
+      aiTimerRef.current = null;
+    }
+    setIsShowHandOpen(false);
+
+    if (isEarlyTerminationNoticeVisible) {
+      setIsScoreboardOpen(false);
+      setAutoDealCountdown(null);
       return;
     }
 
@@ -169,7 +207,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
             clearInterval(interval);
             setIsScoreboardOpen(false);
             sounds.playShuffleSound();
-            setGameState(state => advanceToNextHand(state));
+            setGameState(state =>
+              state.phase === 'round_summary' && !state.matchWinner
+                ? advanceToNextHand(state)
+                : state
+            );
             return null;
           }
           return prev - 1;
@@ -178,7 +220,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
 
       return () => clearInterval(interval);
     }
-  }, [gameState.phase, gameState.matchWinner, gameState.handNumber]);
+  }, [
+    isHandTerminated,
+    isEarlyTerminationNoticeVisible,
+    gameState.phase,
+    gameState.matchWinner,
+    gameState.handNumber,
+  ]);
 
   /**
    * Handle Bidding progression (AI turns during bidding and revision)
@@ -193,7 +241,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
           setGameState(prev => submitPlayerBid(prev, 'west', 2));
         }, 600);
       }
-      return;
+      return () => {
+        if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+      };
     }
 
     const currentBidderId = gameState.biddingOrder[gameState.biddingCurrentIndex];
@@ -329,25 +379,58 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
     setAutoDealCountdown(null);
     setIsAutoDealPaused(false);
     sounds.playShuffleSound();
-    setGameState(prev => advanceToNextHand(prev));
+    setGameState(prev =>
+      prev.phase === 'round_summary' && !prev.matchWinner
+        ? advanceToNextHand(prev)
+        : prev
+    );
   }, []);
 
   /**
-   * Restart entire match
+   * Restart entire match after confirmation ("Play Again")
    */
   const handleRestartMatch = useCallback(() => {
+    if (restartLockRef.current) return;
+    restartLockRef.current = true;
+    if (aiTimerRef.current) {
+      clearTimeout(aiTimerRef.current);
+      aiTimerRef.current = null;
+    }
     setIsScoreboardOpen(false);
+    setIsShowHandOpen(false);
+    setWinningHighlightId(null);
+    setAutoDealCountdown(null);
+    setIsAutoDealPaused(false);
+    setSeenReshuffleReason(null);
+    setEarlyNoticeCompletedHand(null);
     sounds.playShuffleSound();
-    setGameState(prev => {
-      const fresh = initializeMatch(prev.matchConfig);
-      return startHand(fresh);
-    });
+    setGameState(prev => confirmPlayAgain(prev));
   }, []);
+
+  /**
+   * Exit completed match to main welcome screen ("Exit Game")
+   */
+  const handleExitGame = useCallback(() => {
+    if (aiTimerRef.current) {
+      clearTimeout(aiTimerRef.current);
+      aiTimerRef.current = null;
+    }
+    setIsScoreboardOpen(false);
+    setIsShowHandOpen(false);
+    setWinningHighlightId(null);
+    setAutoDealCountdown(null);
+    setIsAutoDealPaused(false);
+    setSeenReshuffleReason(null);
+    setEarlyNoticeCompletedHand(null);
+    setGameState(prev => exitCompletedMatch(prev));
+    onReturnHome?.();
+  }, [onReturnHome]);
 
   /**
    * Redeal current hand
    */
   const handleRedealHand = useCallback(() => {
+    setEarlyNoticeCompletedHand(null);
     sounds.playShuffleSound();
     setGameState(prev => {
       const reset = { ...prev, matchWinner: null, phase: 'idle' as const };
@@ -499,7 +582,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
         settings={gameState.settings}
         onToggleSound={handleToggleSound}
         onOpenRules={() => setIsRulesOpen(true)}
-        onOpenScoreboard={() => setIsScoreboardOpen(true)}
+        onOpenScoreboard={() => {
+          if (!isEarlyTerminationNoticeVisible) setIsScoreboardOpen(true);
+        }}
         onOpenMatchConfig={() => setIsMatchConfigOpen(true)}
         onOpenTestRunner={() => setIsTestRunnerOpen(true)}
         onOpenTactics={() => setIsTacticsOpen(true)}
@@ -564,7 +649,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
                 onSelectBid={handleHumanSelectBid}
                 language={appLanguage}
               />
-            ) : gameState.phase === 'round_summary' && !gameState.matchWinner ? (
+            ) : gameState.phase === 'round_summary' && !gameState.matchWinner && !isEarlyTerminationNoticeVisible ? (
               <div className="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl bg-neutral-950/90 border-2 border-amber-600/60 shadow-2xl text-center max-w-sm animate-fade-in z-30">
                 <div className="text-amber-400 font-cinzel text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
                   Hand {gameState.handNumber} Completed
@@ -586,6 +671,38 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
                     className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-amber-200 font-cinzel text-xs rounded-xl border border-amber-700/50 cursor-pointer"
                   >
                     Scoreboard
+                  </button>
+                </div>
+              </div>
+            ) : gameState.phase === 'match_completed' && !isEarlyTerminationNoticeVisible ? (
+              <div className="flex flex-col items-center justify-center p-3 sm:p-5 rounded-2xl bg-neutral-950/90 border-2 border-amber-500/70 shadow-2xl text-center max-w-sm animate-fade-in z-30">
+                <div className="text-amber-400 font-cinzel text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1">
+                  Match Completed
+                </div>
+                <div className="font-cinzel text-base sm:text-xl text-amber-100 font-black mb-1">
+                  {gameState.matchWinner === 'tie'
+                    ? 'Match Drawn'
+                    : gameState.matchWinner === 'team1'
+                    ? `${team1.name} Wins!`
+                    : `${team2.name} Wins!`}
+                </div>
+                <div className="text-xs text-amber-300/80 mb-3 font-mono">
+                  Team 1: {team1.matchScore} pts · Team 2: {team2.matchScore} pts
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsScoreboardOpen(true)}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-neutral-950 font-cinzel text-xs font-bold uppercase rounded-xl border border-amber-200 shadow-md cursor-pointer transition-all"
+                  >
+                    Final Scoreboard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExitGame}
+                    className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-amber-200 font-cinzel text-xs rounded-xl border border-amber-700/50 cursor-pointer"
+                  >
+                    Exit Game
                   </button>
                 </div>
               </div>
@@ -669,8 +786,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
         matchConfig={gameState.matchConfig}
         isMatchOver={gameState.phase === 'match_completed'}
         matchWinner={gameState.matchWinner}
+        earlyTerminationReason={gameState.earlyTerminationReason}
         onNextHand={handleNextHand}
         onRestartMatch={handleRestartMatch}
+        onExitGame={handleExitGame}
         autoDealCountdown={autoDealCountdown}
         isAutoDealPaused={isAutoDealPaused}
         onTogglePauseAutoDeal={() => setIsAutoDealPaused(p => !p)}
@@ -751,6 +870,14 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onReturnHome }) => {
         isOpen={isReshufflePopupOpen}
         reason={gameState.reshuffleReason}
         onClose={handleCloseReshufflePopup}
+        language={appLanguage}
+      />
+
+      {/* Early Termination Notification (failed contracts only; dismissed via Okay / Cancel) */}
+      <EarlyTerminationPopup
+        isOpen={isEarlyTerminationNoticeVisible}
+        notification={gameState.earlyTerminationNotification ?? null}
+        onClose={handleDismissEarlyTerminationNotice}
         language={appLanguage}
       />
     </div>

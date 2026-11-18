@@ -33,6 +33,10 @@ export interface ScoreboardTranslations {
   btnPauseAuto: string;
   btnStartNewMatch: string;
   btnReviewTable: string;
+  winnerBadge: string;
+  rematchPrompt: string;
+  btnPlayAgain: string;
+  btnExitGame: string;
 }
 
 export interface MatchConfigTranslations {
@@ -187,6 +191,10 @@ export const MODAL_TRANSLATIONS: Record<RulebookLanguage, ModalTranslations> = {
       btnPauseAuto: '⏸ Pause Auto-Deal',
       btnStartNewMatch: 'Start New Royal Match',
       btnReviewTable: 'Review Table',
+      winnerBadge: 'WINNER',
+      rematchPrompt: 'Congratulations! Would you like to play another game?',
+      btnPlayAgain: 'Play Again',
+      btnExitGame: 'Exit Game',
     },
     matchConfig: {
       badge: 'Match Setup',
@@ -357,6 +365,10 @@ export const MODAL_TRANSLATIONS: Record<RulebookLanguage, ModalTranslations> = {
       btnPauseAuto: '⏸ स्वतः खेल रोकें',
       btnStartNewMatch: 'नया मुकाबला शुरू करें',
       btnReviewTable: 'टेबल का जायजा लें',
+      winnerBadge: 'विजेता',
+      rematchPrompt: 'बधाई हो! क्या आप एक और गेम खेलना चाहेंगे?',
+      btnPlayAgain: 'फिर से खेलें',
+      btnExitGame: 'गेम से बाहर निकलें',
     },
     matchConfig: {
       badge: 'मैच सेटिंग्स',
@@ -526,6 +538,10 @@ export const MODAL_TRANSLATIONS: Record<RulebookLanguage, ModalTranslations> = {
       btnPauseAuto: '⏸ ସ୍ୱୟଂଚାଳିତ ରୋକନ୍ତୁ',
       btnStartNewMatch: 'ନୂଆ ରାଜକୀୟ ମ୍ୟାଚ୍ ଆରମ୍ଭ କରନ୍ତୁ',
       btnReviewTable: 'ଟେବୁଲ୍ ଯାଞ୍ଚ କରନ୍ତୁ',
+      winnerBadge: 'ବିଜେତା',
+      rematchPrompt: 'ଅଭିନନ୍ଦନ! ଆପଣ ଆଉ ଏକ ଖେଳ ଖେଳିବାକୁ ଚାହିଁବେ କି?',
+      btnPlayAgain: 'ପୁଣି ଖେଳନ୍ତୁ',
+      btnExitGame: 'ଖେଳରୁ ବାହାରନ୍ତୁ',
     },
     matchConfig: {
       badge: 'ମ୍ୟାଚ୍ ପ୍ରସ୍ତୁତି',
